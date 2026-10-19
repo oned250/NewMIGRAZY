@@ -15,8 +15,10 @@ import {
   ArrowRight,
   Terminal,
   Bike,
+  KeyRound,
 } from 'lucide-react';
 import MotorModelManager from '@/components/admin/MotorModelManager';
+import ArmadaUnitManager from '@/components/admin/ArmadaUnitManager';
 
 type UnitPositionStatus = 'parkir' | 'servis' | 'disewa';
 type PoolLocation = 'malang' | 'batu';
@@ -399,7 +401,7 @@ function formatRp(val: number) {
 }
 
 export default function RyokourentAuditDashboard() {
-  const [activeTab, setActiveTab] = useState<'workflow' | 'model_katalog' | 'lacak' | 'denda' | 'kode'>('model_katalog');
+  const [activeTab, setActiveTab] = useState<'workflow' | 'model_katalog' | 'armada_fisik' | 'lacak' | 'denda' | 'kode'>('armada_fisik');
 
   // State untuk CPT Lacak Unit (`ryokou_lacak`)
   const [units, setUnits] = useState<TrackedUnit[]>(INITIAL_UNITS);
@@ -673,7 +675,16 @@ export default function RyokourentAuditDashboard() {
             }`}
           >
             <Bike className="w-4 h-4 text-emerald-700" />
-            Model & Tarif Motor (003)
+            Model & Tarif (003)
+          </button>
+          <button
+            onClick={() => setActiveTab('armada_fisik')}
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+              activeTab === 'armada_fisik' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
+            }`}
+          >
+            <KeyRound className="w-4 h-4 text-emerald-700" />
+            Armada Fisik (004)
           </button>
           <button
             onClick={() => setActiveTab('lacak')}
@@ -751,6 +762,15 @@ export default function RyokourentAuditDashboard() {
             >
               <Bike className="w-3 h-3 text-emerald-700" />
               Model (003)
+            </button>
+            <button
+              onClick={() => setActiveTab('armada_fisik')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeTab === 'armada_fisik' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              <KeyRound className="w-3 h-3 text-emerald-700" />
+              Armada (004)
             </button>
             <button
               onClick={() => setActiveTab('lacak')}
@@ -939,7 +959,12 @@ export default function RyokourentAuditDashboard() {
           <MotorModelManager />
         )}
 
-        {/* TAB 3: CPT LACAK UNIT (ryokou_lacak) */}
+        {/* TAB 3: MANAJEMEN UNIT ARMADA FISIK (TASK-004 - Cloud SQL PostgreSQL & React 19) */}
+        {activeTab === 'armada_fisik' && (
+          <ArmadaUnitManager />
+        )}
+
+        {/* TAB 4: CPT LACAK UNIT (ryokou_lacak) */}
         {activeTab === 'lacak' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
