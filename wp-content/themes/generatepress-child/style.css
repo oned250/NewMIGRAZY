@@ -1,0 +1,19 @@
+/*
+ Theme Name:   GeneratePress Child — Ryokourent
+ Theme URI:    https://ryokourent.com
+ Description:  Child Theme GeneratePress khusus untuk Ryokourent (Rental Motor Malang Raya & Kota Wisata Batu).
+ Author:       Ryokourent Dev Team
+ Template:     generatepress
+ Version:      2.1.0
+ Text Domain:  ryokourent
+*/
+
+:root {
+	--ryokou-brand-primary: #065f46;
+	--ryokou-brand-hover: #047857;
+	--ryokou-surface-bg: #f8fafc;
+}
+
+body {
+	background-color: var(--ryokou-surface-bg);
+}

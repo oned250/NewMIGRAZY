@@ -1,0 +1,6 @@
+{
+  "name": "Ryokourent V2 — Lacak Unit & Kalkulator Denda ShortRent",
+  "description": "Audit penyelesaian migrasi Ryokourent v2 (D-26 & D-27): CPT Lacak Unit (Pool Parkir, Bengkel Servis, Posisi Sewa) & Kalkulator Denda ShortRent Step-Up 60 Menit.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
