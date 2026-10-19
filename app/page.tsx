@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import MotorModelManager from '@/components/admin/MotorModelManager';
 import ArmadaUnitManager from '@/components/admin/ArmadaUnitManager';
+import BookingStateMachineManager from '@/components/admin/BookingStateMachineManager';
+import LiveUnitTrackingDashboard from '@/components/admin/LiveUnitTrackingDashboard';
 
 type UnitPositionStatus = 'parkir' | 'servis' | 'disewa';
 type PoolLocation = 'malang' | 'batu';
@@ -401,7 +403,7 @@ function formatRp(val: number) {
 }
 
 export default function RyokourentAuditDashboard() {
-  const [activeTab, setActiveTab] = useState<'workflow' | 'model_katalog' | 'armada_fisik' | 'lacak' | 'denda' | 'kode'>('armada_fisik');
+  const [activeTab, setActiveTab] = useState<'workflow' | 'model_katalog' | 'armada_fisik' | 'transaksi_state' | 'lacak' | 'denda' | 'kode'>('lacak');
 
   // State untuk CPT Lacak Unit (`ryokou_lacak`)
   const [units, setUnits] = useState<TrackedUnit[]>(INITIAL_UNITS);
@@ -687,12 +689,22 @@ export default function RyokourentAuditDashboard() {
             Armada Fisik (004)
           </button>
           <button
+            onClick={() => setActiveTab('transaksi_state')}
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+              activeTab === 'transaksi_state' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+            Transaksi & State (005)
+          </button>
+          <button
             onClick={() => setActiveTab('lacak')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
               activeTab === 'lacak' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
-            CPT Lacak Unit
+            <MapPin className="w-4 h-4 text-emerald-700" />
+            Lacak Real-Time (006)
           </button>
           <button
             onClick={() => setActiveTab('denda')}
@@ -773,12 +785,22 @@ export default function RyokourentAuditDashboard() {
               Armada (004)
             </button>
             <button
+              onClick={() => setActiveTab('transaksi_state')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeTab === 'transaksi_state' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+              Transaksi (005)
+            </button>
+            <button
               onClick={() => setActiveTab('lacak')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
                 activeTab === 'lacak' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
               }`}
             >
-              CPT Lacak Unit
+              <MapPin className="w-3 h-3 text-emerald-700" />
+              Lacak (006)
             </button>
             <button
               onClick={() => setActiveTab('denda')}
@@ -964,7 +986,12 @@ export default function RyokourentAuditDashboard() {
           <ArmadaUnitManager />
         )}
 
-        {/* TAB 4: CPT LACAK UNIT (ryokou_lacak) */}
+        {/* TAB 4: TRANSAKSI & STATE MACHINE (TASK-005 - Cloud SQL PostgreSQL & React 19) */}
+        {activeTab === 'transaksi_state' && (
+          <BookingStateMachineManager />
+        )}
+
+        {/* TAB 5: CPT LACAK UNIT (ryokou_lacak) */}
         {activeTab === 'lacak' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
