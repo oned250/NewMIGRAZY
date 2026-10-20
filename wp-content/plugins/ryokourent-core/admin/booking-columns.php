@@ -44,6 +44,7 @@ function ryokourent_booking_render_columns( $column, $post_id ) {
 	$status     = $post->post_status;
 	$no_booking = get_post_meta( $post_id, '_ryokou_no_booking', true );
 	$nama       = get_post_meta( $post_id, '_ryokou_nama', true );
+	$nomor_wa   = get_post_meta( $post_id, '_ryokou_nomor_wa', true );
 	$jenis_id   = get_post_meta( $post_id, '_ryokou_jenis_id_pendukung', true );
 	$tanda      = get_post_meta( $post_id, '_ryokou_tanda_pelanggan', true );
 	$motor_id   = absint( get_post_meta( $post_id, '_ryokou_motor_id', true ) );
@@ -59,8 +60,14 @@ function ryokourent_booking_render_columns( $column, $post_id ) {
 		case 'no_booking':
 			echo '<strong><a href="' . esc_url( get_edit_post_link( $post_id ) ) . '">' . esc_html( $no_booking ? $no_booking : '#' . $post_id ) . '</a></strong>';
 			echo '<br>' . esc_html( $nama ) . ' <small style="color:#475569;">(ID: ' . esc_html( $jenis_id ? $jenis_id : 'SIM_C' ) . ')</small>';
+			if ( $nomor_wa ) {
+				echo '<br><small style="color:#0f766e;font-weight:600;">📱 ' . esc_html( $nomor_wa ) . '</small>';
+			}
 			if ( $tanda ) {
-				echo '<br><span style="font-size:11px;padding:1px 6px;border-radius:3px;background:#f1f5f9;color:#334155;">' . esc_html( $tanda ) . '</span>';
+				$tanda_bg = ( 'langganan' === $tanda ) ? '#dbeafe' : '#f1f5f9';
+				$tanda_fg = ( 'langganan' === $tanda ) ? '#1e40af' : '#334155';
+				$tanda_tx = ( 'langganan' === $tanda ) ? 'Langganan' : 'Baru';
+				echo '<br><span style="font-size:11px;padding:1px 6px;border-radius:3px;background:' . $tanda_bg . ';color:' . $tanda_fg . ';font-weight:600;">' . esc_html( $tanda_tx ) . '</span>';
 			}
 			break;
 

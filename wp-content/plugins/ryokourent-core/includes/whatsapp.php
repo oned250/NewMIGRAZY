@@ -34,6 +34,9 @@ function ryokourent_generate_whatsapp_booking_url( $booking_id ) {
 	$booking_id = absint( $booking_id );
 	$no_booking = get_post_meta( $booking_id, '_ryokou_no_booking', true );
 	$nama       = get_post_meta( $booking_id, '_ryokou_nama', true );
+	$nomor_wa   = get_post_meta( $booking_id, '_ryokou_nomor_wa', true );
+	$tanda      = get_post_meta( $booking_id, '_ryokou_tanda_pelanggan', true );
+	$tanda_lbl  = ( 'langganan' === $tanda ) ? 'Pelanggan Langganan (Repeat Order)' : 'Pelanggan Baru';
 	$jenis_id   = get_post_meta( $booking_id, '_ryokou_jenis_id_pendukung', true );
 	$pool       = get_post_meta( $booking_id, '_ryokou_pool', true );
 	$pool_label = ( 'batu' === $pool ) ? 'Pool Batu (Diponegoro)' : 'Pool Malang (Dinoyo)';
@@ -54,6 +57,10 @@ function ryokourent_generate_whatsapp_booking_url( $booking_id ) {
 	$lines[] = '';
 	$lines[] = '*No. Booking:* ' . ( $no_booking ? $no_booking : '#' . $booking_id );
 	$lines[] = '*Nama Penyewa:* ' . $nama;
+	if ( $nomor_wa ) {
+		$lines[] = '*No. WhatsApp / HP:* ' . $nomor_wa;
+	}
+	$lines[] = '*Status Pelanggan:* ' . $tanda_lbl;
 	$lines[] = '*ID Pendukung (Pendamping KTP):* ' . ( $jenis_id ? $jenis_id : 'SIM_C' );
 	$lines[] = '*Unit Motor:* ' . $motor_nama;
 	$lines[] = '*Paket / Durasi:* ' . $label_durasi;

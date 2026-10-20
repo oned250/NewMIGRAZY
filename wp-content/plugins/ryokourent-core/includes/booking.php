@@ -229,27 +229,29 @@ function ryokourent_ajax_submit_booking() {
 		wp_send_json_error( array( 'message' => __( 'Batas pengiriman pesanan tercapai. Silakan tunggu beberapa menit atau hubungi WhatsApp kami langsung.', 'ryokourent' ) ) );
 	}
 
-	// 5. Ambil & Validasi Field (Opsi 2A: Pool + Alamat Pengantaran + Alamat Penjemputan + Jenis ID Pendukung)
-	$nama           = isset( $_POST['nama'] ) ? sanitize_text_field( wp_unslash( $_POST['nama'] ) ) : '';
-	$jenis_id       = isset( $_POST['jenis_id_pendukung'] ) ? sanitize_text_field( wp_unslash( $_POST['jenis_id_pendukung'] ) ) : 'SIM_C';
-	$pool           = isset( $_POST['pool'] ) && 'batu' === $_POST['pool'] ? 'batu' : 'malang';
-	$alamat_antar   = isset( $_POST['alamat_pengantaran'] ) ? sanitize_textarea_field( wp_unslash( $_POST['alamat_pengantaran'] ) ) : '';
-	$alamat_jemput  = isset( $_POST['alamat_penjemputan'] ) ? sanitize_textarea_field( wp_unslash( $_POST['alamat_penjemputan'] ) ) : '';
-	$motor_id       = isset( $_POST['motor_id'] ) ? absint( $_POST['motor_id'] ) : 0;
-	$kat_tarif      = isset( $_POST['kategori_tarif'] ) ? sanitize_key( $_POST['kategori_tarif'] ) : 'harian';
-	$pilihan_durasi = isset( $_POST['pilihan_durasi'] ) ? sanitize_key( $_POST['pilihan_durasi'] ) : '1_hari';
-	$label_durasi   = isset( $_POST['label_durasi'] ) ? sanitize_text_field( wp_unslash( $_POST['label_durasi'] ) ) : '1 Hari (24 Jam)';
-	$tgl_mulai      = isset( $_POST['tanggal_mulai'] ) ? str_replace( 'T', ' ', sanitize_text_field( wp_unslash( $_POST['tanggal_mulai'] ) ) ) : '';
-	$tgl_selesai    = isset( $_POST['tanggal_selesai'] ) ? str_replace( 'T', ' ', sanitize_text_field( wp_unslash( $_POST['tanggal_selesai'] ) ) ) : '';
+	// 5. Ambil & Validasi Field (Opsi 2A: Pool + Alamat Pengantaran + Alamat Penjemputan + Jenis ID Pendukung + WhatsApp + Tanda Pelanggan)
+	$nama            = isset( $_POST['nama'] ) ? sanitize_text_field( wp_unslash( $_POST['nama'] ) ) : '';
+	$nomor_wa        = isset( $_POST['nomor_wa'] ) ? sanitize_text_field( wp_unslash( $_POST['nomor_wa'] ) ) : '';
+	$tanda_pelanggan = ( isset( $_POST['tanda_pelanggan'] ) && 'langganan' === $_POST['tanda_pelanggan'] ) ? 'langganan' : 'baru';
+	$jenis_id        = isset( $_POST['jenis_id_pendukung'] ) ? sanitize_text_field( wp_unslash( $_POST['jenis_id_pendukung'] ) ) : 'SIM_C';
+	$pool            = isset( $_POST['pool'] ) && 'batu' === $_POST['pool'] ? 'batu' : 'malang';
+	$alamat_antar    = isset( $_POST['alamat_pengantaran'] ) ? sanitize_textarea_field( wp_unslash( $_POST['alamat_pengantaran'] ) ) : '';
+	$alamat_jemput   = isset( $_POST['alamat_penjemputan'] ) ? sanitize_textarea_field( wp_unslash( $_POST['alamat_penjemputan'] ) ) : '';
+	$motor_id        = isset( $_POST['motor_id'] ) ? absint( $_POST['motor_id'] ) : 0;
+	$kat_tarif       = isset( $_POST['kategori_tarif'] ) ? sanitize_key( $_POST['kategori_tarif'] ) : 'harian';
+	$pilihan_durasi  = isset( $_POST['pilihan_durasi'] ) ? sanitize_key( $_POST['pilihan_durasi'] ) : '1_hari';
+	$label_durasi    = isset( $_POST['label_durasi'] ) ? sanitize_text_field( wp_unslash( $_POST['label_durasi'] ) ) : '1 Hari (24 Jam)';
+	$tgl_mulai       = isset( $_POST['tanggal_mulai'] ) ? str_replace( 'T', ' ', sanitize_text_field( wp_unslash( $_POST['tanggal_mulai'] ) ) ) : '';
+	$tgl_selesai     = isset( $_POST['tanggal_selesai'] ) ? str_replace( 'T', ' ', sanitize_text_field( wp_unslash( $_POST['tanggal_selesai'] ) ) ) : '';
 
 	// Validasi Anti-NIK 16 Digit pada semua input teks (UU PDP D-21, QA-02)
-	$combined_text = $nama . ' ' . $alamat_antar . ' ' . $alamat_jemput;
+	$combined_text = $nama . ' ' . $nomor_wa . ' ' . $alamat_antar . ' ' . $alamat_jemput;
 	if ( preg_match( '/(?:\d[\s\-]?){16}/', $combined_text ) ) {
 		wp_send_json_error( array( 'message' => __( 'Demi pelindungan data pribadi (UU PDP No. 27/2022), DILARANG menuliskan 16 digit NIK KTP pada formulir ini.', 'ryokourent' ) ) );
 	}
 
-	if ( empty( $nama ) || ! $motor_id || empty( $tgl_mulai ) || empty( $tgl_selesai ) ) {
-		wp_send_json_error( array( 'message' => __( 'Mohon lengkapi Nama, Unit Motor, dan Jadwal Sewa.', 'ryokourent' ) ) );
+	if ( empty( $nama ) || empty( $nomor_wa ) || ! $motor_id || empty( $tgl_mulai ) || empty( $tgl_selesai ) ) {
+		wp_send_json_error( array( 'message' => __( 'Mohon lengkapi Nama, Nomor WhatsApp, Unit Motor, dan Jadwal Sewa.', 'ryokourent' ) ) );
 	}
 
 	$allowed_ids = array( 'KTM', 'SIM_C', 'SIM_A', 'PASPOR', 'NPWP', 'ID_KARYAWAN', 'LAINNYA' );
@@ -308,6 +310,8 @@ function ryokourent_ajax_submit_booking() {
 
 	update_post_meta( $booking_id, '_ryokou_no_booking', $no_booking );
 	update_post_meta( $booking_id, '_ryokou_nama', $nama );
+	update_post_meta( $booking_id, '_ryokou_nomor_wa', $nomor_wa );
+	update_post_meta( $booking_id, '_ryokou_tanda_pelanggan', $tanda_pelanggan );
 	update_post_meta( $booking_id, '_ryokou_jenis_id_pendukung', $jenis_id );
 	update_post_meta( $booking_id, '_ryokou_pool', $pool );
 	update_post_meta( $booking_id, '_ryokou_alamat_pengantaran', $alamat_antar );

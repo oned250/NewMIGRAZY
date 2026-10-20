@@ -229,7 +229,7 @@ function ryokourent_render_booking_form_shortcode() {
 				<span>⚠️ <?php esc_html_e( 'Jadwal berada di luar jam operasional reguler (07.00–23.00 WIB). Pemesanan tetap dapat dikirim namun memerlukan kesepakatan ketersediaan petugas via WhatsApp.', 'ryokourent' ); ?></span>
 			</div>
 
-			<!-- Baris 4: Nama Penyewa & Jenis Identitas Pendukung (UU PDP D-21: Tanpa NIK) -->
+			<!-- Baris 4: Identitas Penyewa (Nama, WhatsApp, Status Pelanggan, & Jenis ID UU PDP D-21) -->
 			<div class="ryokou-form-row">
 				<div class="ryokou-form-group">
 					<label for="ryokou_nama"><?php esc_html_e( '7. Nama Lengkap Penyewa (Sesuai KTP)', 'ryokourent' ); ?></label>
@@ -237,7 +237,22 @@ function ryokourent_render_booking_form_shortcode() {
 				</div>
 
 				<div class="ryokou-form-group">
-					<label for="ryokou_jenis_id"><?php esc_html_e( '8. Jenis Identitas Pendukung (D-21)', 'ryokourent' ); ?></label>
+					<label for="ryokou_nomor_wa"><?php esc_html_e( '8. Nomor WhatsApp / HP Aktif', 'ryokourent' ); ?></label>
+					<input type="tel" id="ryokou_nomor_wa" name="nomor_wa" placeholder="Contoh: 08123456789" required />
+				</div>
+			</div>
+
+			<div class="ryokou-form-row">
+				<div class="ryokou-form-group">
+					<label for="ryokou_tanda_pelanggan"><?php esc_html_e( '9. Status Pelanggan', 'ryokourent' ); ?></label>
+					<select id="ryokou_tanda_pelanggan" name="tanda_pelanggan">
+						<option value="baru"><?php esc_html_e( 'Pelanggan Baru', 'ryokourent' ); ?></option>
+						<option value="langganan"><?php esc_html_e( 'Pelanggan Langganan (Repeat Order)', 'ryokourent' ); ?></option>
+					</select>
+				</div>
+
+				<div class="ryokou-form-group">
+					<label for="ryokou_jenis_id"><?php esc_html_e( '10. Jenis Identitas Pendukung (D-21)', 'ryokourent' ); ?></label>
 					<select id="ryokou_jenis_id" name="jenis_id_pendukung" required>
 						<option value="SIM_C"><?php esc_html_e( 'SIM C Aktif', 'ryokourent' ); ?></option>
 						<option value="KTM"><?php esc_html_e( 'KTM (Kartu Tanda Mahasiswa)', 'ryokourent' ); ?></option>
@@ -253,12 +268,12 @@ function ryokourent_render_booking_form_shortcode() {
 			<!-- Baris 5: Lokasi Pengantaran & Lokasi Penjemputan Terpisah (Opsi 2A) -->
 			<div class="ryokou-form-row">
 				<div class="ryokou-form-group">
-					<label for="ryokou_alamat_antar"><?php esc_html_e( '9. Lokasi Pengantaran / Ambil Unit', 'ryokourent' ); ?></label>
+					<label for="ryokou_alamat_antar"><?php esc_html_e( '11. Lokasi Pengantaran / Ambil Unit', 'ryokourent' ); ?></label>
 					<input type="text" id="ryokou_alamat_antar" name="alamat_pengantaran" placeholder="Contoh: Ambil di Pool Malang / Stasiun Malang Kota Baru / Nama Hotel" required />
 				</div>
 
 				<div class="ryokou-form-group">
-					<label for="ryokou_alamat_jemput"><?php esc_html_e( '10. Lokasi Penjemputan / Kembali Unit', 'ryokourent' ); ?></label>
+					<label for="ryokou_alamat_jemput"><?php esc_html_e( '12. Lokasi Penjemputan / Kembali Unit', 'ryokourent' ); ?></label>
 					<input type="text" id="ryokou_alamat_jemput" name="alamat_penjemputan" placeholder="Contoh: Kembali di Pool Batu / Alun-Alun Batu / Nama Hotel" required />
 				</div>
 			</div>

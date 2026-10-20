@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	var tglMulaiInput      = document.getElementById('ryokou_tgl_mulai');
 	var tglSelesaiInput    = document.getElementById('ryokou_tgl_selesai');
 	var namaInput          = document.getElementById('ryokou_nama');
+	var nomorWaInput       = document.getElementById('ryokou_nomor_wa');
+	var tandaPelangganInput= document.getElementById('ryokou_tanda_pelanggan');
 	var alamatAntarInput   = document.getElementById('ryokou_alamat_antar');
 	var alamatJemputInput  = document.getElementById('ryokou_alamat_jemput');
 	var submitBtn          = document.getElementById('ryokou-submit-btn');
@@ -285,6 +287,12 @@ document.addEventListener('DOMContentLoaded', function() {
 		var nikRegex = /(?:\d[\s\-]?){16}/;
 		if (nikRegex.test(combinedText)) {
 			errorBox.textContent = 'Demi pelindungan data pribadi (UU PDP No. 27/2022), DILARANG menuliskan 16 digit NIK KTP pada formulir ini.';
+			errorBox.style.display = 'block';
+			return;
+		}
+
+		if (nomorWaInput && !nomorWaInput.value.trim()) {
+			errorBox.textContent = 'Mohon masukkan nomor WhatsApp / HP aktif untuk konfirmasi pemesanan.';
 			errorBox.style.display = 'block';
 			return;
 		}
