@@ -16,11 +16,13 @@ import {
   Terminal,
   Bike,
   KeyRound,
+  Globe,
 } from 'lucide-react';
 import MotorModelManager from '@/components/admin/MotorModelManager';
 import ArmadaUnitManager from '@/components/admin/ArmadaUnitManager';
 import BookingStateMachineManager from '@/components/admin/BookingStateMachineManager';
 import LiveUnitTrackingDashboard from '@/components/admin/LiveUnitTrackingDashboard';
+import CustomerBookingPortal from '@/components/public/CustomerBookingPortal';
 
 type UnitPositionStatus = 'parkir' | 'servis' | 'disewa';
 type PoolLocation = 'malang' | 'batu';
@@ -403,7 +405,7 @@ function formatRp(val: number) {
 }
 
 export default function RyokourentAuditDashboard() {
-  const [activeTab, setActiveTab] = useState<'workflow' | 'model_katalog' | 'armada_fisik' | 'transaksi_state' | 'lacak' | 'denda' | 'kode'>('lacak');
+  const [activeTab, setActiveTab] = useState<'workflow' | 'portal_publik' | 'model_katalog' | 'armada_fisik' | 'transaksi_state' | 'lacak' | 'denda' | 'kode'>('portal_publik');
 
   // State untuk CPT Lacak Unit (`ryokou_lacak`)
   const [units, setUnits] = useState<TrackedUnit[]>(INITIAL_UNITS);
@@ -671,6 +673,15 @@ export default function RyokourentAuditDashboard() {
             Alur Kerja MD & Handover
           </button>
           <button
+            onClick={() => setActiveTab('portal_publik')}
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+              activeTab === 'portal_publik' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
+            }`}
+          >
+            <Globe className="w-4 h-4 text-emerald-700" />
+            Portal Publik (007)
+          </button>
+          <button
             onClick={() => setActiveTab('model_katalog')}
             className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
               activeTab === 'model_katalog' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
@@ -765,6 +776,15 @@ export default function RyokourentAuditDashboard() {
               }`}
             >
               FOLDER_KERJA
+            </button>
+            <button
+              onClick={() => setActiveTab('portal_publik')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                activeTab === 'portal_publik' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              <Globe className="w-3 h-3 text-emerald-700" />
+              Portal (007)
             </button>
             <button
               onClick={() => setActiveTab('model_katalog')}
@@ -976,6 +996,45 @@ export default function RyokourentAuditDashboard() {
           </div>
         )}
 
+        {/* TAB 1B: PORTAL PEMESANAN PUBLIK MODERN (TASK-007 - React 19 / Modern Decoupled) */}
+        {activeTab === 'portal_publik' && (
+          <div className="space-y-6">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-700 text-white rounded-lg shadow-xs">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-emerald-950">
+                      Prototipe Portal Pelanggan Publik (TASK-007)
+                    </h3>
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-200 text-emerald-900 rounded-full">
+                      React 19 Decoupled
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-800 mt-0.5">
+                    Antarmuka pemesanan mandiri: katalog model live, indikator stok biner (Tersedia/Habis), formulir booking tanpa NIK KTP (UU PDP No. 27/2022), dan terhubung langsung ke State Machine.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('transaksi_state')}
+                className="px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-white border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors whitespace-nowrap shadow-2xs flex items-center gap-1.5 self-start md:self-auto"
+              >
+                <span>Lihat Antrean Operator (005)</span>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
+              </button>
+            </div>
+
+            <CustomerBookingPortal
+              onBookingSuccess={() => {
+                setActiveTab('transaksi_state');
+              }}
+            />
+          </div>
+        )}
+
         {/* TAB 2: MODEL & MULTI-TIER TARIF (TASK-003 - Cloud SQL PostgreSQL & React 19) */}
         {activeTab === 'model_katalog' && (
           <MotorModelManager />
@@ -991,8 +1050,13 @@ export default function RyokourentAuditDashboard() {
           <BookingStateMachineManager />
         )}
 
-        {/* TAB 5: CPT LACAK UNIT (ryokou_lacak) */}
+        {/* TAB 5: MONITORING LACAK UNIT REAL-TIME (TASK-006 - Cloud SQL PostgreSQL & React 19) */}
         {activeTab === 'lacak' && (
+          <LiveUnitTrackingDashboard />
+        )}
+
+        {/* TAB ARSIP MOCKUP LACAK LAMA */}
+        {false && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
