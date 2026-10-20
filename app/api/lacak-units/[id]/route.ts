@@ -1,6 +1,61 @@
 import { NextResponse } from 'next/server';
-import { db, lacakUnits, armadaUnits } from '@/lib/db';
+import { db, lacakUnits, armadaUnits, motorModels } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+
+// GET /api/lacak-units/[id] - Ambil detail monitoring unit
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await props.params;
+    const lacakId = parseInt(params.id, 10);
+    if (isNaN(lacakId)) {
+      return NextResponse.json({ success: false, error: 'ID lacak tidak valid' }, { status: 400 });
+    }
+
+    const res = await db
+      .select({
+        id: lacakUnits.id,
+        unitId: lacakUnits.unitId,
+        kodeUnit: lacakUnits.kodeUnit,
+        motorId: lacakUnits.motorId,
+        statusPosisi: lacakUnits.statusPosisi,
+        poolParkir: lacakUnits.poolParkir,
+        namaBengkel: lacakUnits.namaBengkel,
+        kontakBengkel: lacakUnits.kontakBengkel,
+        estimasiSelesai: lacakUnits.estimasiSelesai,
+        bookingId: lacakUnits.bookingId,
+        noBooking: lacakUnits.noBooking,
+        namaPenyewa: lacakUnits.namaPenyewa,
+        tenggatKembali: lacakUnits.tenggatKembali,
+        catatan: lacakUnits.catatan,
+        updatedAt: lacakUnits.updatedAt,
+        updatedBy: lacakUnits.updatedBy,
+        nomorPlat: armadaUnits.nomorPlat,
+        warna: armadaUnits.warna,
+        statusServis: armadaUnits.statusServis,
+        kmTerakhir: armadaUnits.kmTerakhir,
+        namaModel: motorModels.namaModel,
+        kategori: motorModels.kategori,
+        imageUrl: motorModels.imageUrl,
+      })
+      .from(lacakUnits)
+      .leftJoin(armadaUnits, eq(lacakUnits.unitId, armadaUnits.id))
+      .leftJoin(motorModels, eq(lacakUnits.motorId, motorModels.id))
+      .where(eq(lacakUnits.id, lacakId))
+      .limit(1);
+
+    if (res.length === 0) {
+      return NextResponse.json({ success: false, error: 'Data lacak unit tidak ditemukan' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: res[0] });
+  } catch (error: any) {
+    console.error('Error fetching tracked unit detail:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
 
 // PUT /api/lacak-units/[id] - Memperbarui status posisi unit (Parkir, Servis, Disewa) secara cepat (AC-03 TASK-006)
 export async function PUT(

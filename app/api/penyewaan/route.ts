@@ -175,6 +175,20 @@ export async function POST(req: Request) {
     const calcStartEpoch = startEpoch ? Number(startEpoch) : Math.floor(new Date(jamTanggalMulai).getTime() / 1000);
     const calcEndEpoch = endEpoch ? Number(endEpoch) : Math.floor(new Date(jamTanggalSelesai).getTime() / 1000);
 
+    if (isNaN(calcStartEpoch) || isNaN(calcEndEpoch)) {
+      return NextResponse.json(
+        { success: false, error: 'Format tanggal mulai atau selesai tidak valid.' },
+        { status: 400 }
+      );
+    }
+
+    if (calcEndEpoch <= calcStartEpoch) {
+      return NextResponse.json(
+        { success: false, error: 'Waktu selesai sewa harus lebih lambat dari waktu mulai sewa.' },
+        { status: 400 }
+      );
+    }
+
     const noBooking = generateNoBooking();
 
     const [newBooking] = await db

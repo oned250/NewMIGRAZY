@@ -486,3 +486,67 @@ export async function PUT(
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+// DELETE /api/penyewaan/[id] - Hapus riwayat pesanan (hanya jika belum / tidak sedang 'Disewa')
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await props.params;
+    const bookingId = parseInt(params.id, 10);
+    if (isNaN(bookingId)) {
+      return NextResponse.json({ success: false, error: 'ID booking tidak valid' }, { status: 400 });
+    }
+
+    const res = await db.select().from(penyewaan).where(eq(penyewaan.id, bookingId)).limit(1);
+    if (res.length === 0) {
+      return NextResponse.json({ success: false, error: 'Pesanan tidak ditemukan' }, { status: 404 });
+    }
+
+    const booking = res[0];
+
+    // Proteksi: tidak boleh menghapus transaksi yang statusnya 'Disewa'
+    if (booking.status?.toLowerCase() === 'disewa') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Pesanan dengan status "Disewa" tidak boleh dihapus. Selesaikan atau ubah status terlebih dahulu.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Jika memiliki unitId terkait di lacak_units, pastikan unit dilepaskan kembali ke parkir jika masih menunjuk ke bookingId ini
+    if (booking.unitId) {
+      await db
+        .update(lacakUnits)
+        .set({
+          statusPosisi: 'parkir',
+          bookingId: null,
+          noBooking: null,
+          namaPenyewa: null,
+          tenggatKembali: null,
+          catatan: 'Booking dihapus oleh admin',
+          updatedAt: new Date(),
+          updatedBy: 'Admin (Delete Booking)',
+        })
+        .where(
+          and(
+            eq(lacakUnits.unitId, booking.unitId),
+            eq(lacakUnits.bookingId, bookingId)
+          )
+        );
+    }
+
+    await db.delete(penyewaan).where(eq(penyewaan.id, bookingId));
+
+    return NextResponse.json({
+      success: true,
+      message: `Pesanan ${booking.noBooking} berhasil dihapus.`,
+    });
+  } catch (error: any) {
+    console.error('Error deleting booking:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

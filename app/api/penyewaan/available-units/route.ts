@@ -8,8 +8,8 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const motorIdStr = searchParams.get('motorId');
-    const startEpochStr = searchParams.get('startEpoch');
-    const endEpochStr = searchParams.get('endEpoch');
+    const startEpochStr = searchParams.get('startEpoch') || searchParams.get('start');
+    const endEpochStr = searchParams.get('endEpoch') || searchParams.get('end');
     const currentBookingIdStr = searchParams.get('currentBookingId');
 
     if (!motorIdStr) {
@@ -17,8 +17,39 @@ export async function GET(req: Request) {
     }
 
     const motorId = parseInt(motorIdStr, 10);
-    const startEpoch = startEpochStr ? parseInt(startEpochStr, 10) : Math.floor(Date.now() / 1000);
-    const endEpoch = endEpochStr ? parseInt(endEpochStr, 10) : startEpoch + 86400;
+    if (isNaN(motorId)) {
+      return NextResponse.json({ success: false, error: 'motorId tidak valid' }, { status: 400 });
+    }
+
+    let startEpoch: number;
+    if (startEpochStr) {
+      if (!isNaN(Number(startEpochStr))) {
+        startEpoch = parseInt(startEpochStr, 10);
+      } else {
+        startEpoch = Math.floor(new Date(startEpochStr).getTime() / 1000);
+      }
+    } else {
+      startEpoch = Math.floor(Date.now() / 1000);
+    }
+
+    let endEpoch: number;
+    if (endEpochStr) {
+      if (!isNaN(Number(endEpochStr))) {
+        endEpoch = parseInt(endEpochStr, 10);
+      } else {
+        endEpoch = Math.floor(new Date(endEpochStr).getTime() / 1000);
+      }
+    } else {
+      endEpoch = startEpoch + 86400;
+    }
+
+    if (isNaN(startEpoch) || isNaN(endEpoch)) {
+      return NextResponse.json(
+        { success: false, error: 'Format tanggal/epoch mulai atau selesai tidak valid' },
+        { status: 400 }
+      );
+    }
+
     const currentBookingId = currentBookingIdStr ? parseInt(currentBookingIdStr, 10) : null;
 
     // Buffer 90 menit (5400 detik) sesuai BR-01
