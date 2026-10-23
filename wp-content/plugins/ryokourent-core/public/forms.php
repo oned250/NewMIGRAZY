@@ -36,13 +36,7 @@ function ryokourent_enqueue_public_assets() {
 		true
 	);
 
-	$motors = get_posts(
-		array(
-			'post_type'      => 'motor',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-		)
-	);
+	$motors = ryokourent_get_all_motors_with_fallback();
 
 	$motors_pricing = array();
 	foreach ( $motors as $m ) {
@@ -66,44 +60,44 @@ function ryokourent_enqueue_public_assets() {
 add_action( 'wp_enqueue_scripts', 'ryokourent_enqueue_public_assets' );
 
 /**
- * 2. Shortcode `[ryokou_katalog]` — Menampilkan Kartu Katalog Motor (D-05, D-11, D-18, D-26)
+ * 2. Shortcode `[ryokou_katalog]` — Menampilkan Kartu Katalog Motor Lengkap (Kategori, Spesifikasi, Fasilitas & Multi-Tier D-18)
  */
 function ryokourent_render_katalog_shortcode() {
-	$motors = get_posts(
-		array(
-			'post_type'      => 'motor',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-		)
-	);
+	$motors = ryokourent_get_all_motors_with_fallback();
 
 	ob_start();
 	?>
 	<div class="ryokou-katalog-grid">
 		<?php foreach ( $motors as $m ) : ?>
 			<?php
-			$pricing   = ryokourent_get_motor_tiered_pricing( $m->ID );
-			$indicator = ryokourent_get_public_stock_indicator( $m->ID );
-			$fasilitas = get_post_meta( $m->ID, '_ryokou_fasilitas', true );
-			if ( ! $fasilitas ) {
-				$fasilitas = '2 Helm SNI & Jas Hujan';
-			}
+			$pricing     = ryokourent_get_motor_tiered_pricing( $m->ID );
+			$indicator   = ryokourent_get_public_stock_indicator( $m->ID );
+			$fasilitas   = ! empty( $m->fasilitas ) ? $m->fasilitas : '2 Helm SNI & Jas Hujan';
+			$spesifikasi = ! empty( $m->spesifikasi ) ? $m->spesifikasi : '';
+			$kat_lower   = strtolower( preg_replace( '/[^a-zA-Z0-9]/', '', $m->kategori ) );
 			?>
 			<div class="ryokou-motor-card" data-motor-id="<?php echo esc_attr( $m->ID ); ?>">
 				<div class="ryokou-card-header">
-					<h3 class="ryokou-motor-title"><?php echo esc_html( $m->post_title ); ?></h3>
+					<div>
+						<span class="ryokou-cat-badge <?php echo esc_attr( $kat_lower ); ?>"><?php echo esc_html( $m->kategori ); ?></span>
+						<h3 class="ryokou-motor-title" style="margin-top:6px;"><?php echo esc_html( $m->post_title ); ?></h3>
+					</div>
 					<span class="ryokou-indicator-badge <?php echo esc_attr( $indicator['status'] ); ?>">
 						<?php echo esc_html( $indicator['label'] ); ?>
 					</span>
 				</div>
 
+				<?php if ( ! empty( $spesifikasi ) ) : ?>
+					<p class="ryokou-spesifikasi-text">⚙️ <?php echo esc_html( $spesifikasi ); ?></p>
+				<?php endif; ?>
+
 				<div class="ryokou-main-price-box">
-					<span class="ryokou-price-label"><?php esc_html_e( 'Tarif Sewa 1 Hari (24 Jam):', 'ryokourent' ); ?></span>
+					<span class="ryokou-price-label"><?php esc_html_e( 'Tarif Sewa 1 Hari (24 Jam) [Utama]:', 'ryokourent' ); ?></span>
 					<strong class="ryokou-price-amount"><?php echo esc_html( $pricing['harga_utama_format'] ); ?></strong>
 				</div>
 
 				<p class="ryokou-fasilitas-text">✨ <?php echo esc_html( $fasilitas ); ?></p>
-				<p class="ryokou-denda-text">⏱️ <?php echo esc_html( sprintf( __( 'Denda Harian / ShortRent 12 Jam: %s', 'ryokourent' ), $pricing['denda_harian_format'] ) ); ?></p>
+				<p class="ryokou-denda-text">⏱️ <?php echo esc_html( sprintf( __( 'Denda Terlambat / ShortRent 12 Jam: %s/jam', 'ryokourent' ), $pricing['denda_harian_format'] ) ); ?></p>
 
 				<!-- Cascading Dropdown Simulasi Tarif di Kartu Katalog (D-18) -->
 				<div class="ryokou-card-tier-selector">
@@ -130,13 +124,7 @@ add_shortcode( 'ryokou_katalog', 'ryokourent_render_katalog_shortcode' );
  * 3. Shortcode `[ryokou_booking_form]` — Formulir Pemesanan Publik Lengkap (Opsi 2A, D-18, D-21, D-26, D-27)
  */
 function ryokourent_render_booking_form_shortcode() {
-	$motors = get_posts(
-		array(
-			'post_type'      => 'motor',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-		)
-	);
+	$motors = ryokourent_get_all_motors_with_fallback();
 
 	$issued_at  = time();
 	$time_token = $issued_at . '.' . wp_hash( 'ryokou_form_time_' . $issued_at );
@@ -164,9 +152,9 @@ function ryokourent_render_booking_form_shortcode() {
 					<label for="ryokou_motor_select"><?php esc_html_e( '1. Pilih Model Motor', 'ryokourent' ); ?></label>
 					<select id="ryokou_motor_select" name="motor_id" required>
 						<?php foreach ( $motors as $m ) : ?>
-							<?php $h1 = absint( get_post_meta( $m->ID, '_ryokou_harga_harian', true ) ); ?>
-							<option value="<?php echo esc_attr( $m->ID ); ?>" data-harga="<?php echo esc_attr( $h1 ? $h1 : 80000 ); ?>">
-								<?php echo esc_html( $m->post_title . ' — Rp ' . number_format( $h1 ? $h1 : 80000, 0, ',', '.' ) . '/hari' ); ?>
+							<?php $pricing = ryokourent_get_motor_tiered_pricing( $m->ID ); ?>
+							<option value="<?php echo esc_attr( $m->ID ); ?>" data-harga="<?php echo esc_attr( $pricing['harga_utama_1hari'] ); ?>">
+								<?php echo esc_html( sprintf( '%s (%s) — %s/hari', $m->post_title, $m->kategori, $pricing['harga_utama_format'] ) ); ?>
 							</option>
 						<?php endforeach; ?>
 					</select>

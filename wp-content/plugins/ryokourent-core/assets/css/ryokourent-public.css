@@ -35,6 +35,53 @@
 	color: #0f172a;
 }
 
+/* Badge Kategori Model Motor (Matic, Retro, Trail, Sport) */
+.ryokou-cat-badge {
+	display: inline-block;
+	padding: 3px 8px;
+	border-radius: 6px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	margin-bottom: 4px;
+}
+
+.ryokou-cat-badge.matic {
+	background-color: #e0f2fe;
+	color: #0369a1;
+	border: 1px solid #bae6fd;
+}
+
+.ryokou-cat-badge.retro {
+	background-color: #ede9fe;
+	color: #6d28d9;
+	border: 1px solid #ddd6fe;
+}
+
+.ryokou-cat-badge.trail {
+	background-color: #fef3c7;
+	color: #b45309;
+	border: 1px solid #fde68a;
+}
+
+.ryokou-cat-badge.sport {
+	background-color: #fce7f3;
+	color: #be185d;
+	border: 1px solid #fbcfe8;
+}
+
+.ryokou-spesifikasi-text {
+	font-size: 0.82rem;
+	color: #334155;
+	background: #f1f5f9;
+	padding: 7px 11px;
+	border-radius: 6px;
+	margin: 8px 0;
+	border-left: 3px solid #0f766e;
+	line-height: 1.4;
+}
+
 /* Indikator Stok Biner Tegas (D-05: Hanya Tersedia [Hijau] atau Habis [Merah]) */
 .ryokou-indicator-badge {
 	display: inline-block;

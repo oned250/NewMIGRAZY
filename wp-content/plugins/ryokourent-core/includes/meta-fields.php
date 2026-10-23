@@ -222,48 +222,298 @@ function ryokourent_get_unit_tracking_summary( $unit_id ) {
 }
 
 /**
+ * Data Model Contoh / Dummy Standar Model (003) React
+ *
+ * Mencakup 6 model motor lengkap dengan spesifikasi, fasilitas, kategori, dan multi-tier tarif.
+ */
+function ryokourent_get_default_sample_motors() {
+	return array(
+		array(
+			'id'                => 1,
+			'title'             => 'Honda Scoopy Prestige',
+			'namaModel'         => 'Honda Scoopy Prestige',
+			'kategori'          => 'Matic',
+			'harga1Hari'        => 85000,
+			'harga1Minggu'      => 510000,
+			'harga2Minggu'      => 950000,
+			'harga12Jam'        => 65000,
+			'harga9Jam'         => 55000,
+			'harga6Jam'         => 45000,
+			'harga3Jam'         => 35000,
+			'dendaHarianPerJam' => 20000,
+			'fasilitas'         => '2 Helm SNI + Jas Hujan + Phone Holder',
+			'spesifikasi'       => '110cc, Smart Key, Bagasi 15.4L',
+			'imageUrl'          => '',
+			'isActive'          => true,
+		),
+		array(
+			'id'                => 2,
+			'title'             => 'Yamaha NMAX 155 Connected',
+			'namaModel'         => 'Yamaha NMAX 155 Connected',
+			'kategori'          => 'Matic',
+			'harga1Hari'        => 135000,
+			'harga1Minggu'      => 810000,
+			'harga2Minggu'      => 1500000,
+			'harga12Jam'        => 105000,
+			'harga9Jam'         => 90000,
+			'harga6Jam'         => 75000,
+			'harga3Jam'         => 55000,
+			'dendaHarianPerJam' => 25000,
+			'fasilitas'         => '2 Helm SNI + Jas Hujan',
+			'spesifikasi'       => '155cc VVA, ABS, Bagasi Luas 24L',
+			'imageUrl'          => '',
+			'isActive'          => true,
+		),
+		array(
+			'id'                => 3,
+			'title'             => 'Honda CRF 150L',
+			'namaModel'         => 'Honda CRF 150L',
+			'kategori'          => 'Trail',
+			'harga1Hari'        => 220000,
+			'harga1Minggu'      => 1350000,
+			'harga2Minggu'      => 2500000,
+			'harga12Jam'        => 175000,
+			'harga9Jam'         => 150000,
+			'harga6Jam'         => 125000,
+			'harga3Jam'         => 95000,
+			'dendaHarianPerJam' => 35000,
+			'fasilitas'         => '2 Helm SNI/Cross + Jas Hujan + Goggle Bromo',
+			'spesifikasi'       => '150cc, Ban Trail Khusus Laut Pasir Bromo',
+			'imageUrl'          => '',
+			'isActive'          => true,
+		),
+		array(
+			'id'                => 4,
+			'title'             => 'Yamaha Fazzio Hybrid',
+			'namaModel'         => 'Yamaha Fazzio Hybrid',
+			'kategori'          => 'Retro',
+			'harga1Hari'        => 95000,
+			'harga1Minggu'      => 570000,
+			'harga2Minggu'      => 1050000,
+			'harga12Jam'        => 75000,
+			'harga9Jam'         => 65000,
+			'harga6Jam'         => 50000,
+			'harga3Jam'         => 40000,
+			'dendaHarianPerJam' => 20000,
+			'fasilitas'         => '2 Helm SNI + Jas Hujan',
+			'spesifikasi'       => '125cc Blue Core Hybrid, Desain Retro Klasik',
+			'imageUrl'          => '',
+			'isActive'          => true,
+		),
+		array(
+			'id'                => 5,
+			'title'             => 'Yamaha R15 V4 Connected',
+			'namaModel'         => 'Yamaha R15 V4 Connected',
+			'kategori'          => 'Sport',
+			'harga1Hari'        => 175000,
+			'harga1Minggu'      => 1050000,
+			'harga2Minggu'      => 1950000,
+			'harga12Jam'        => 135000,
+			'harga9Jam'         => 115000,
+			'harga6Jam'         => 90000,
+			'harga3Jam'         => 65000,
+			'dendaHarianPerJam' => 30000,
+			'fasilitas'         => '2 Helm SNI + Jas Hujan',
+			'spesifikasi'       => '155cc VVA, Quick Shifter, Assist & Slipper Clutch',
+			'imageUrl'          => '',
+			'isActive'          => true,
+		),
+		array(
+			'id'                => 7,
+			'title'             => 'Honda BeAT DELUXE/CBS  2021/2022',
+			'namaModel'         => 'Honda BeAT DELUXE/CBS  2021/2022',
+			'kategori'          => 'Matic',
+			'harga1Hari'        => 80000,
+			'harga1Minggu'      => 480000,
+			'harga2Minggu'      => 880000,
+			'harga12Jam'        => 60000,
+			'harga9Jam'         => 52000,
+			'harga6Jam'         => 40000,
+			'harga3Jam'         => 28000,
+			'dendaHarianPerJam' => 10000,
+			'fasilitas'         => '2 Helm SNI + Jas Hujan',
+			'spesifikasi'       => 'Lincah, Mesin irit injeksi, USB charging',
+			'imageUrl'          => '',
+			'isActive'          => true,
+		),
+	);
+}
+
+/**
+ * Helper: Ambil seluruh model motor aktif dari database WP,
+ * dengan fallback otomatis ke 6 model contoh Model (003) jika database masih kosong.
+ */
+function ryokourent_get_all_motors_with_fallback() {
+	$posts = get_posts(
+		array(
+			'post_type'      => 'motor',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'menu_order title',
+			'order'          => 'ASC',
+		)
+	);
+
+	if ( ! empty( $posts ) ) {
+		$result = array();
+		foreach ( $posts as $p ) {
+			$terms = get_the_terms( $p->ID, 'kategori_motor' );
+			$kat   = ( ! empty( $terms ) && ! is_wp_error( $terms ) ) ? $terms[0]->name : 'Matic';
+			$h1    = absint( get_post_meta( $p->ID, '_ryokou_harga_harian', true ) );
+			$fas   = get_post_meta( $p->ID, '_ryokou_fasilitas', true );
+			$spek  = get_post_meta( $p->ID, '_ryokou_spesifikasi', true );
+			$result[] = (object) array(
+				'ID'          => $p->ID,
+				'post_title'  => $p->post_title,
+				'post_name'   => $p->post_name,
+				'kategori'    => $kat,
+				'spesifikasi' => $spek ? $spek : 'Spesifikasi standar rental',
+				'fasilitas'   => $fas ? $fas : '2 Helm SNI & Jas Hujan',
+				'harga1Hari'  => $h1 ? $h1 : 85000,
+				'is_dummy'    => false,
+			);
+		}
+		return $result;
+	}
+
+	// Fallback ke 6 model contoh Model (003)
+	$samples = ryokourent_get_default_sample_motors();
+	$result  = array();
+	foreach ( $samples as $s ) {
+		$result[] = (object) array(
+			'ID'          => $s['id'],
+			'post_title'  => $s['title'],
+			'post_name'   => sanitize_title( $s['title'] ),
+			'kategori'    => $s['kategori'],
+			'spesifikasi' => $s['spesifikasi'],
+			'fasilitas'   => $s['fasilitas'],
+			'harga1Hari'  => $s['harga1Hari'],
+			'is_dummy'    => true,
+		);
+	}
+	return $result;
+}
+
+/**
+ * Seeder data contoh Model (003) ke dalam CPT `motor` WordPress
+ */
+function ryokourent_seed_sample_motors( $force = false ) {
+	$existing = get_posts(
+		array(
+			'post_type'      => 'motor',
+			'post_status'    => 'any',
+			'posts_per_page' => 1,
+		)
+	);
+
+	if ( ! empty( $existing ) && ! $force ) {
+		return array(
+			'success' => true,
+			'message' => 'Data motor sudah ada di database WordPress, seeding dilewati.',
+			'count'   => count( $existing ),
+		);
+	}
+
+	$samples = ryokourent_get_default_sample_motors();
+	$created = 0;
+
+	foreach ( $samples as $s ) {
+		$found = get_page_by_title( $s['title'], OBJECT, 'motor' );
+		if ( $found && ! $force ) {
+			continue;
+		}
+
+		$post_id = wp_insert_post(
+			array(
+				'post_type'   => 'motor',
+				'post_title'  => $s['title'],
+				'post_status' => 'publish',
+				'post_content'=> $s['spesifikasi'],
+			)
+		);
+
+		if ( $post_id && ! is_wp_error( $post_id ) ) {
+			update_post_meta( $post_id, '_ryokou_harga_harian', $s['harga1Hari'] );
+			update_post_meta( $post_id, '_ryokou_harga_1minggu', $s['harga1Minggu'] );
+			update_post_meta( $post_id, '_ryokou_harga_2minggu', $s['harga2Minggu'] );
+			update_post_meta( $post_id, '_ryokou_harga_12jam', $s['harga12Jam'] );
+			update_post_meta( $post_id, '_ryokou_harga_9jam', $s['harga9Jam'] );
+			update_post_meta( $post_id, '_ryokou_harga_6jam', $s['harga6Jam'] );
+			update_post_meta( $post_id, '_ryokou_harga_3jam', $s['harga3Jam'] );
+			update_post_meta( $post_id, '_ryokou_denda_harian', $s['dendaHarianPerJam'] );
+			update_post_meta( $post_id, '_ryokou_fasilitas', $s['fasilitas'] );
+			update_post_meta( $post_id, '_ryokou_spesifikasi', $s['spesifikasi'] );
+
+			// Set kategori taksonomi
+			if ( ! empty( $s['kategori'] ) ) {
+				wp_set_object_terms( $post_id, $s['kategori'], 'kategori_motor', false );
+			}
+			$created++;
+		}
+	}
+
+	return array(
+		'success' => true,
+		'message' => sprintf( '%d model motor contoh berhasil disinkronkan ke WordPress.', $created ),
+		'count'   => $created,
+	);
+}
+
+/**
  * Helper D-18: Ambil Struktur Tarif Bertingkat 2 Kategori (Harian & Jam/ShortRent) + Paket
+ * Sinkron 100% dengan Kalkulator & Multi-Tier Model (003) React
  */
 function ryokourent_get_motor_tiered_pricing( $motor_id ) {
-	$motor_id     = absint( $motor_id );
-	$harga_1hari  = absint( get_post_meta( $motor_id, '_ryokou_harga_harian', true ) );
+	$motor_id = absint( $motor_id );
+
+	// Cek apakah ada di daftar sample motor
+	$samples      = ryokourent_get_default_sample_motors();
+	$sample_match = null;
+	foreach ( $samples as $s ) {
+		if ( $s['id'] === $motor_id ) {
+			$sample_match = $s;
+			break;
+		}
+	}
+
+	$harga_1hari = absint( get_post_meta( $motor_id, '_ryokou_harga_harian', true ) );
 	if ( ! $harga_1hari ) {
-		$harga_1hari = 80000;
+		$harga_1hari = $sample_match ? $sample_match['harga1Hari'] : 85000;
 	}
 
 	$harga_1minggu = absint( get_post_meta( $motor_id, '_ryokou_harga_1minggu', true ) );
 	if ( ! $harga_1minggu ) {
-		$harga_1minggu = $harga_1hari * 6;
+		$harga_1minggu = $sample_match ? $sample_match['harga1Minggu'] : ( $harga_1hari * 6 );
 	}
 
 	$harga_2minggu = absint( get_post_meta( $motor_id, '_ryokou_harga_2minggu', true ) );
 	if ( ! $harga_2minggu ) {
-		$harga_2minggu = $harga_1hari * 11;
+		$harga_2minggu = $sample_match ? $sample_match['harga2Minggu'] : ( (int) round( ( $harga_1hari * 11 ) / 1000 ) * 1000 );
 	}
 
 	$harga_12jam = absint( get_post_meta( $motor_id, '_ryokou_harga_12jam', true ) );
 	if ( ! $harga_12jam ) {
-		$harga_12jam = (int) round( $harga_1hari * 0.75, -3 );
+		$harga_12jam = $sample_match ? $sample_match['harga12Jam'] : ( (int) round( ( $harga_1hari * 0.75 ) / 1000 ) * 1000 );
 	}
 
 	$harga_9jam = absint( get_post_meta( $motor_id, '_ryokou_harga_9jam', true ) );
 	if ( ! $harga_9jam ) {
-		$harga_9jam = (int) round( $harga_1hari * 0.625, -3 );
+		$harga_9jam = $sample_match ? $sample_match['harga9Jam'] : ( (int) round( ( $harga_1hari * 0.65 ) / 1000 ) * 1000 );
 	}
 
 	$harga_6jam = absint( get_post_meta( $motor_id, '_ryokou_harga_6jam', true ) );
 	if ( ! $harga_6jam ) {
-		$harga_6jam = (int) round( $harga_1hari * 0.5, -3 );
+		$harga_6jam = $sample_match ? $sample_match['harga6Jam'] : ( (int) round( ( $harga_1hari * 0.5 ) / 1000 ) * 1000 );
 	}
 
 	$harga_3jam = absint( get_post_meta( $motor_id, '_ryokou_harga_3jam', true ) );
 	if ( ! $harga_3jam ) {
-		$harga_3jam = (int) round( $harga_1hari * 0.375, -3 );
+		$harga_3jam = $sample_match ? $sample_match['harga3Jam'] : ( (int) round( ( $harga_1hari * 0.35 ) / 1000 ) * 1000 );
 	}
 
 	$denda_harian = absint( get_post_meta( $motor_id, '_ryokou_denda_harian', true ) );
 	if ( ! $denda_harian ) {
-		$denda_harian = 20000;
+		$denda_harian = $sample_match ? $sample_match['dendaHarianPerJam'] : 20000;
 	}
 
 	$kategori = array(

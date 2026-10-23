@@ -98,51 +98,66 @@ function ryokourent_register_rest_routes() {
 			'permission_callback' => '__return_true',
 		)
 	);
+
+	// 6. POST /wp-json/ryokourent/v1/seed-motors
+	register_rest_route(
+		$namespace,
+		'/seed-motors',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'ryokourent_rest_seed_motors',
+			'permission_callback' => '__return_true',
+		)
+	);
 }
 
 /**
- * 1. Handler GET /motor-models
+ * 1. Handler GET /motor-models (Sinkron Penuh dengan Model 003 React)
  */
 function ryokourent_rest_get_motor_models() {
-	$posts = get_posts(
-		array(
-			'post_type'      => 'motor',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'orderby'        => 'menu_order title',
-			'order'          => 'ASC',
-		)
-	);
+	$motors = ryokourent_get_all_motors_with_fallback();
 
 	$data = array();
-	foreach ( $posts as $p ) {
-		$pricing    = ryokourent_get_motor_tiered_pricing( $p->ID );
-		$fasilitas  = get_post_meta( $p->ID, '_ryokou_fasilitas', true );
-		$spesifikasi= get_post_meta( $p->ID, '_ryokou_spesifikasi', true );
-		$thumb_url  = get_the_post_thumbnail_url( $p->ID, 'medium' );
+	foreach ( $motors as $p ) {
+		$pricing     = ryokourent_get_motor_tiered_pricing( $p->ID );
+		$fasilitas   = ! empty( $p->fasilitas ) ? $p->fasilitas : '2 Helm SNI + Jas Hujan';
+		$spesifikasi = ! empty( $p->spesifikasi ) ? $p->spesifikasi : '';
+		$thumb_url   = isset( $p->is_dummy ) && ! $p->is_dummy ? get_the_post_thumbnail_url( $p->ID, 'medium' ) : '';
 
 		// Hitung stok biner default
 		$stock = ryokourent_get_public_stock_indicator( $p->ID );
 
 		$data[] = array(
-			'id'             => $p->ID,
-			'nama'           => $p->post_title,
-			'slug'           => $p->post_name,
-			'gambar_url'     => $thumb_url ? $thumb_url : '',
-			'harga_harian'   => $pricing['kategori']['harian']['sub']['1_hari']['harga'],
-			'harga_1minggu'  => $pricing['kategori']['harian']['sub']['1_minggu']['harga'],
-			'harga_2minggu'  => $pricing['kategori']['harian']['sub']['2_minggu']['harga'],
-			'harga_12jam'    => $pricing['kategori']['jam']['sub']['12_jam']['harga'],
-			'harga_9jam'     => $pricing['kategori']['jam']['sub']['9_jam']['harga'],
-			'harga_6jam'     => $pricing['kategori']['jam']['sub']['6_jam']['harga'],
-			'harga_3jam'     => $pricing['kategori']['jam']['sub']['3_jam']['harga'],
-			'denda_harian'   => $pricing['denda_harian'],
-			'fasilitas'      => $fasilitas ? $fasilitas : '2 Helm SNI, Jas Hujan',
-			'spesifikasi'    => $spesifikasi ? $spesifikasi : '',
-			'stok_tersedia'  => ( 'tersedia' === $stock['status'] ),
-			'stok_status'    => $stock['status'],
-			'stok_label'     => $stock['label'],
-			'stok_pesan'     => $stock['pesan'],
+			'id'                => $p->ID,
+			'nama'              => $p->post_title,
+			'namaModel'         => $p->post_title,
+			'kategori'          => $p->kategori,
+			'slug'              => $p->post_name,
+			'gambar_url'        => $thumb_url ? $thumb_url : '',
+			'imageUrl'          => $thumb_url ? $thumb_url : null,
+			'harga_harian'      => $pricing['kategori']['harian']['sub']['1_hari']['harga'],
+			'harga1Hari'        => $pricing['kategori']['harian']['sub']['1_hari']['harga'],
+			'harga_1minggu'     => $pricing['kategori']['harian']['sub']['1_minggu']['harga'],
+			'harga1Minggu'      => $pricing['kategori']['harian']['sub']['1_minggu']['harga'],
+			'harga_2minggu'     => $pricing['kategori']['harian']['sub']['2_minggu']['harga'],
+			'harga2Minggu'      => $pricing['kategori']['harian']['sub']['2_minggu']['harga'],
+			'harga_12jam'       => $pricing['kategori']['jam']['sub']['12_jam']['harga'],
+			'harga12Jam'        => $pricing['kategori']['jam']['sub']['12_jam']['harga'],
+			'harga_9jam'        => $pricing['kategori']['jam']['sub']['9_jam']['harga'],
+			'harga9Jam'         => $pricing['kategori']['jam']['sub']['9_jam']['harga'],
+			'harga_6jam'        => $pricing['kategori']['jam']['sub']['6_jam']['harga'],
+			'harga6Jam'         => $pricing['kategori']['jam']['sub']['6_jam']['harga'],
+			'harga_3jam'        => $pricing['kategori']['jam']['sub']['3_jam']['harga'],
+			'harga3Jam'         => $pricing['kategori']['jam']['sub']['3_jam']['harga'],
+			'denda_harian'      => $pricing['denda_harian'],
+			'dendaHarianPerJam' => $pricing['denda_harian'],
+			'fasilitas'         => $fasilitas,
+			'spesifikasi'       => $spesifikasi,
+			'stok_tersedia'     => ( 'tersedia' === $stock['status'] ),
+			'stok_status'       => $stock['status'],
+			'stok_label'        => $stock['label'],
+			'stok_pesan'        => $stock['pesan'],
+			'isActive'          => true,
 		);
 	}
 
@@ -153,6 +168,17 @@ function ryokourent_rest_get_motor_models() {
 		),
 		200
 	);
+}
+
+/**
+ * Handler POST /seed-motors (Seeding contoh model 003 ke database WP)
+ */
+function ryokourent_rest_seed_motors( $request ) {
+	$params = $request->get_json_params();
+	$force  = ! empty( $params['force'] );
+	$res    = ryokourent_seed_sample_motors( $force );
+
+	return new WP_REST_Response( $res, 200 );
 }
 
 /**

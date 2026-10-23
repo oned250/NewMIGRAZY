@@ -14,6 +14,7 @@ Metodologi: **Zero-Loss Context Engineering (ZLCE v3.2.2 - Mode LITE)**.
 * **FASE 4: Dashboard Admin — Monitoring Lacak Unit Real-Time (Parkir, Disewa, Servis)** (`TASK-006`)
 * **FASE 5: Prototipe Arsitektur Alternatif Modern (React 19 / TypeScript / REST)** (`TASK-007`)
 * **FASE 6: Verifikasi E2E & Finalisasi Handover** (`TASK-008`)
+* **FASE 7: Penyelarasan & Sinkronisasi Ekosistem** (`TASK-009`)
 
 ---
 
@@ -140,6 +141,23 @@ Metodologi: **Zero-Loss Context Engineering (ZLCE v3.2.2 - Mode LITE)**.
   3. Berkas WordPress native utuh dan terintegrasi dengan REST API.
 * **Test Case:** Audit kualitas akhir ZLCE dan automated E2E test.
 * **Metode Verifikasi:** `compile_applet`, `lint_applet`, `zlce-check.py`, dan cURL testing.
+
+---
+
+### TASK-009: Penyelarasan Sistem Model & Katalog Motor WordPress dengan Model (003) React
+* **Fase:** FASE 7 (Penyelarasan & Sinkronisasi Ekosistem)
+* **Deskripsi:** Menyamakan sistem model dan katalog motor di WordPress (`ryokourent-core`) dengan sistem model (003) di React, mencakup struktur data 6 model dummy (Scoopy, NMAX, CRF 150L, Fazzio, R15, BeAT), multi-tier tarif ribuan otomatis, badge kategori (Matic, Retro, Trail, Sport), spesifikasi & fasilitas, fungsi seeder otomatis, dan rendering katalog publik terintegrasi.
+* **Dependensi:** `TASK-008`
+* **File:** `wp-content/plugins/ryokourent-core/includes/meta-fields.php`, `wp-content/plugins/ryokourent-core/public/forms.php`, `wp-content/plugins/ryokourent-core/includes/rest-api.php`, `wp-content/plugins/ryokourent-core/assets/css/ryokourent-public.css`
+* **Docs Terkait (Tier 1):** `BLUEPRINT.md` (MOD-02, MOD-08)
+* **Docs Impact:** `SESSION_STATE.md`
+* **Acceptance Criteria:**
+  1. WordPress menyediakan daftar 6 model contoh/dummy identik dengan Model (003) di React (nama, kategori, tarif bertingkat, denda per jam, fasilitas, dan spesifikasi).
+  2. Shortcode katalog publik `[ryokou_katalog]` dan form booking `[ryokou_booking_form]` menampilkan badge kategori, spesifikasi, dan multi-tier selector yang serasi dengan Model (003).
+  3. REST API `/wp-json/ryokourent/v1/motor-models` mengembalikan data 6 model tersebut secara konsisten dan lengkap.
+  4. Tersedia fungsi seeder database `ryokourent_seed_sample_motors()` untuk populasi post `motor` secara otomatis.
+* **Test Case:** Pengujian render shortcode katalog dan validasi REST API endpoint `/wp-json/ryokourent/v1/motor-models`.
+* **Metode Verifikasi:** Uji sintaksis PHP, pengujian cURL endpoint, dan validasi `zlce-check.py`.
 
 ---
 
