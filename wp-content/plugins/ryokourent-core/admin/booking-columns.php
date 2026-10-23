@@ -298,6 +298,13 @@ function ryokourent_render_settings_page() {
 		}
 	}
 
+	// 3. Impor Otomatis 6 Model Motor Contoh (Model 003 React)
+	if ( isset( $_POST['ryokou_seed_motors_btn'] ) && check_admin_referer( 'ryokou_seed_motors_action', 'ryokou_seed_nonce' ) ) {
+		$force  = ! empty( $_POST['ryokou_seed_force'] );
+		$result = ryokourent_seed_sample_motors( $force );
+		$notice = $result['message'];
+	}
+
 	$current_wa = ryokourent_get_admin_whatsapp_number();
 	$wa_logs    = get_option( 'ryokourent_wa_audit_log', array() );
 	$terms      = get_terms(
@@ -306,14 +313,23 @@ function ryokourent_render_settings_page() {
 			'hide_empty' => false,
 		)
 	);
+	$total_motors = count(
+		get_posts(
+			array(
+				'post_type'      => 'motor',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+			)
+		)
+	);
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Pengaturan Operasional Ryokourent (D-22 & D-23)', 'ryokourent' ); ?></h1>
 		<?php if ( $notice ) : ?>
-			<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $notice ); ?></p></div>
+			<div class="notice notice-success is-dismissible"><p><strong><?php echo esc_html( $notice ); ?></strong></p></div>
 		<?php endif; ?>
 
-		<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;margin-top:20px;">
+		<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin-top:20px;">
 			<!-- Kartu 1: Nomor WhatsApp & Audit Log (D-23) -->
 			<div style="background:#fff;padding:20px;border:1px solid #cbd5e1;border-radius:8px;">
 				<h2><?php esc_html_e( '1. Nomor WhatsApp Penerima Booking & Audit Log (D-23)', 'ryokourent' ); ?></h2>
@@ -376,6 +392,37 @@ function ryokourent_render_settings_page() {
 						<button type="submit" name="ryokou_bulk_price_btn" class="button button-primary" onclick="return confirm('Terapkan perubahan tarif massal ini sekarang?');">
 							<?php esc_html_e( 'Terapkan Penyesuaian Tarif Massal', 'ryokourent' ); ?>
 						</button>
+					</p>
+				</form>
+			</div>
+
+			<!-- Kartu 3: Impor Otomatis Model Motor Contoh (Model 003 React) -->
+			<div style="background:#fff;padding:20px;border:1px solid #cbd5e1;border-radius:8px;">
+				<h2><?php esc_html_e( '3. Impor Data Motor dari React (1-Klik)', 'ryokourent' ); ?></h2>
+				<p style="color:#475569;">
+					<?php esc_html_e( 'Ambil 6 data model motor dari sistem React 19 (Scoopy, NMAX, CRF 150L, Fazzio, R15, BeAT) dan pasang otomatis ke database WordPress tanpa perlu mengisi satu per satu.', 'ryokourent' ); ?>
+				</p>
+				<div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 14px;border-radius:6px;margin-bottom:15px;">
+					<strong style="color:#166534;">📊 Status Database WordPress:</strong><br>
+					<span style="font-size:13px;color:#15803d;">
+						Saat ini terdaftar <strong><?php echo esc_html( $total_motors ); ?></strong> model motor di CPT <code>motor</code>.
+					</span>
+				</div>
+				<form method="post">
+					<?php wp_nonce_field( 'ryokou_seed_motors_action', 'ryokou_seed_nonce' ); ?>
+					<p>
+						<label style="cursor:pointer;">
+							<input type="checkbox" name="ryokou_seed_force" value="1" />
+							<?php esc_html_e( 'Perbarui / timpa data jika motor sudah ada sebelumnya', 'ryokourent' ); ?>
+						</label>
+					</p>
+					<p>
+						<button type="submit" name="ryokou_seed_motors_btn" class="button button-primary" style="background:#0f766e;border-color:#0d5e58;padding:4px 14px;font-weight:600;">
+							<?php esc_html_e( '⚡ Impor 6 Model Motor Sekarang (1-Klik)', 'ryokourent' ); ?>
+						</button>
+					</p>
+					<p style="color:#64748b;font-size:12px;margin-top:10px;">
+						<?php esc_html_e( 'Model yang diimpor mencakup taksonomi Kategori, tarif harian (1H, 1M, 2M), tarif jam (12J, 9J, 6J, 3J), denda keterlambatan, spesifikasi, dan perlengkapan helm/jas hujan.', 'ryokourent' ); ?>
 					</p>
 				</form>
 			</div>
