@@ -60,8 +60,16 @@ Catatan tulis-dahulu (WAL):
   2. **Kompilasi & Kualitas Kode:**
      - `compile_applet` -> **Build succeeded (0 error)**
      - `lint_applet` -> **0 error (Clean)**
-  3. **Integritas WordPress Native (D-31):**
-     - 13 berkas di `wp-content/plugins/ryokourent-core/` dan `wp-content/themes/generatepress-child/` tetap 100% utuh tanpa modifikasi destruktif.
+  3. **Penyelarasan & Integritas WordPress Native (D-31):**
+     - Berkas di `wp-content/plugins/ryokourent-core/` telah diselaraskan penuh dengan seluruh pembaruan sistem:
+       a. `public/forms.php`: Form publik dilengkapi field `nomor_wa`, `tanda_pelanggan`, dan `jenis_id_pendukung` patuh UU PDP No. 27/2022.
+       b. `assets/js/ryokourent-booking.js`: Submit handler AJAX tervalidasi nomor WhatsApp dan anti-NIK.
+       c. `includes/booking.php`: Sanitasi, proteksi time token, rate-limit, dan penyimpanan meta `_ryokou_nomor_wa` & `_ryokou_tanda_pelanggan`.
+       d. `includes/whatsapp.php`: Pesan WhatsApp mencantumkan nomor WhatsApp pemesan dan status pelanggan.
+       e. `admin/booking-columns.php`: Tabel admin menampilkan kolom `nomor_wa` dan badge status pelanggan.
+       f. `includes/meta-fields.php`: Metabox admin `penyewaan` lengkap (data pemesanan, data pelanggan anti-NIK, unit fisik, jadwal, pool, tarif estimasi & denda D-27).
+       g. `includes/rest-api.php`: Modul REST API WordPress resmi (`/wp-json/ryokourent/v1/...`) untuk kompatibilitas decoupled penuh.
+       h. Seluruh berkas PHP lolos uji sintaksis dan bracket balance 100%.
 
 ---
 

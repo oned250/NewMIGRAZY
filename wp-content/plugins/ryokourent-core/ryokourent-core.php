@@ -25,3 +25,4 @@ require_once RYOKOURENT_PLUGIN_DIR . 'includes/whatsapp.php';
 require_once RYOKOURENT_PLUGIN_DIR . 'admin/lacak-columns.php';
 require_once RYOKOURENT_PLUGIN_DIR . 'admin/booking-columns.php';
 require_once RYOKOURENT_PLUGIN_DIR . 'public/forms.php';
+require_once RYOKOURENT_PLUGIN_DIR . 'includes/rest-api.php';

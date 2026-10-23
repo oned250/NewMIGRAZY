@@ -405,6 +405,15 @@ function ryokourent_add_meta_boxes() {
 		'normal',
 		'high'
 	);
+
+	add_meta_box(
+		'ryokou_booking_details_box',
+		__( 'Rincian Pemesanan & Data Pelanggan (UU PDP D-21 & D-27)', 'ryokourent' ),
+		'ryokourent_render_booking_metabox',
+		'penyewaan',
+		'normal',
+		'high'
+	);
 }
 add_action( 'add_meta_boxes', 'ryokourent_add_meta_boxes' );
 
@@ -607,7 +616,146 @@ function ryokourent_render_paket_metabox( $post ) {
 }
 
 /**
- * 4. Simpan Meta untuk `motor`, `ryokou_unit` (Beserta Auto-Sync `ryokou_lacak`), & `ryokou_paket`
+ * Render Metabox CPT `penyewaan` (Detail Lengkap Booking, Data Pelanggan D-21, Unit, & Denda D-27)
+ */
+function ryokourent_render_booking_metabox( $post ) {
+	wp_nonce_field( 'ryokou_save_booking_meta', 'ryokou_booking_nonce' );
+	$no_booking  = get_post_meta( $post->ID, '_ryokou_no_booking', true );
+	$nama        = get_post_meta( $post->ID, '_ryokou_nama', true );
+	$nomor_wa    = get_post_meta( $post->ID, '_ryokou_nomor_wa', true );
+	$tanda       = get_post_meta( $post->ID, '_ryokou_tanda_pelanggan', true );
+	$jenis_id    = get_post_meta( $post->ID, '_ryokou_jenis_id_pendukung', true );
+	$motor_nama  = get_post_meta( $post->ID, '_ryokou_snapshot_nama_motor', true );
+	$kode_unit   = get_post_meta( $post->ID, '_ryokou_snapshot_kode_unit', true );
+	$durasi_lbl  = get_post_meta( $post->ID, '_ryokou_label_durasi', true );
+	$mulai       = get_post_meta( $post->ID, '_ryokou_jam_tanggal_mulai', true );
+	$selesai     = get_post_meta( $post->ID, '_ryokou_jam_tanggal_selesai', true );
+	$pool        = get_post_meta( $post->ID, '_ryokou_pool', true );
+	$alamat_antar= get_post_meta( $post->ID, '_ryokou_alamat_pengantaran', true );
+	$alamat_jemput= get_post_meta( $post->ID, '_ryokou_alamat_penjemputan', true );
+	$total_est   = absint( get_post_meta( $post->ID, '_ryokou_total_harga_estimasi', true ) );
+	$total_denda = absint( get_post_meta( $post->ID, '_ryokou_total_denda', true ) );
+	$catatan_denda= get_post_meta( $post->ID, '_ryokou_catatan_denda', true );
+	$luar_jam    = get_post_meta( $post->ID, '_ryokou_luar_jam_operasional', true );
+	$wa_link     = function_exists( 'ryokourent_generate_whatsapp_booking_url' ) ? ryokourent_generate_whatsapp_booking_url( $post->ID ) : '';
+	?>
+	<table class="form-table">
+		<tr>
+			<th><?php esc_html_e( 'No. Booking Resmi', 'ryokourent' ); ?></th>
+			<td>
+				<input type="text" id="ryokou_no_booking" name="ryokou_no_booking" value="<?php echo esc_attr( $no_booking ); ?>" class="regular-text" readonly style="background:#f1f5f9;font-weight:bold;color:#0f766e;" />
+				<span style="margin-left:10px;font-weight:600;text-transform:uppercase;color:#475569;">Status: <?php echo esc_html( str_replace( 'ryokou_', '', $post->post_status ) ); ?></span>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_nama"><?php esc_html_e( 'Nama Penyewa (UU PDP D-21)', 'ryokourent' ); ?></label></th>
+			<td>
+				<input type="text" id="ryokou_nama" name="ryokou_nama" value="<?php echo esc_attr( $nama ); ?>" class="regular-text" required />
+				<p class="description"><?php esc_html_e( 'Dilarang mencatat 16 digit NIK KTP sesuai UU Pelindungan Data Pribadi No. 27/2022.', 'ryokourent' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_nomor_wa"><?php esc_html_e( 'Nomor WhatsApp / HP Aktif', 'ryokourent' ); ?></label></th>
+			<td>
+				<input type="text" id="ryokou_nomor_wa" name="ryokou_nomor_wa" value="<?php echo esc_attr( $nomor_wa ); ?>" class="regular-text" placeholder="08123456789" />
+				<?php if ( $nomor_wa ) : 
+					$wa_num = preg_replace( '/[^0-9]/', '', $nomor_wa );
+					if ( strpos( $wa_num, '08' ) === 0 ) { $wa_num = '62' . substr( $wa_num, 1 ); }
+				?>
+					<a href="<?php echo esc_url( 'https://wa.me/' . $wa_num ); ?>" target="_blank" rel="noopener noreferrer" class="button" style="margin-left:8px;">💬 Chat Pelanggan</a>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_tanda_pelanggan"><?php esc_html_e( 'Status Pelanggan', 'ryokourent' ); ?></label></th>
+			<td>
+				<select id="ryokou_tanda_pelanggan" name="ryokou_tanda_pelanggan">
+					<option value="baru" <?php selected( $tanda, 'baru' ); ?>><?php esc_html_e( 'Pelanggan Baru', 'ryokourent' ); ?></option>
+					<option value="langganan" <?php selected( $tanda, 'langganan' ); ?>><?php esc_html_e( 'Pelanggan Langganan (Repeat Order)', 'ryokourent' ); ?></option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_jenis_id_pendukung"><?php esc_html_e( 'Jenis ID Pendukung (Pendamping KTP)', 'ryokourent' ); ?></label></th>
+			<td>
+				<select id="ryokou_jenis_id_pendukung" name="ryokou_jenis_id_pendukung">
+					<option value="SIM_C" <?php selected( $jenis_id, 'SIM_C' ); ?>><?php esc_html_e( 'SIM C Aktif', 'ryokourent' ); ?></option>
+					<option value="KTM" <?php selected( $jenis_id, 'KTM' ); ?>><?php esc_html_e( 'KTM (Kartu Tanda Mahasiswa)', 'ryokourent' ); ?></option>
+					<option value="SIM_A" <?php selected( $jenis_id, 'SIM_A' ); ?>><?php esc_html_e( 'SIM A', 'ryokourent' ); ?></option>
+					<option value="ID_KARYAWAN" <?php selected( $jenis_id, 'ID_KARYAWAN' ); ?>><?php esc_html_e( 'ID Card Karyawan / Instansi', 'ryokourent' ); ?></option>
+					<option value="PASPOR" <?php selected( $jenis_id, 'PASPOR' ); ?>><?php esc_html_e( 'Paspor', 'ryokourent' ); ?></option>
+					<option value="NPWP" <?php selected( $jenis_id, 'NPWP' ); ?>><?php esc_html_e( 'NPWP', 'ryokourent' ); ?></option>
+					<option value="LAINNYA" <?php selected( $jenis_id, 'LAINNYA' ); ?>><?php esc_html_e( 'Lainnya', 'ryokourent' ); ?></option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Model Motor & Unit Armada', 'ryokourent' ); ?></th>
+			<td>
+				<strong><?php echo esc_html( $motor_nama ? $motor_nama : '-' ); ?></strong>
+				<?php if ( $kode_unit ) : ?>
+					— <span style="color:#0f766e;font-weight:bold;">Unit: <?php echo esc_html( $kode_unit ); ?></span>
+				<?php else : ?>
+					— <span style="color:#b45309;"><?php esc_html_e( 'Belum dikunci unit fisik', 'ryokourent' ); ?></span>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Paket & Durasi Sewa', 'ryokourent' ); ?></th>
+			<td>
+				<strong><?php echo esc_html( $durasi_lbl ? $durasi_lbl : '1 Hari' ); ?></strong>
+				(<?php echo esc_html( $mulai ); ?> WIB s/d <?php echo esc_html( $selesai ); ?> WIB)
+				<?php if ( '1' === (string) $luar_jam ) : ?>
+					<br><span style="color:#b45309;font-weight:600;font-size:12px;">⚠️ Jadwal berada di luar jam operasional reguler (07.00–23.00 WIB)</span>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_pool"><?php esc_html_e( 'Pool Wilayah Layanan (D-26)', 'ryokourent' ); ?></label></th>
+			<td>
+				<select id="ryokou_pool" name="ryokou_pool">
+					<option value="malang" <?php selected( $pool, 'malang' ); ?>><?php esc_html_e( 'Pool Malang (Dinoyo)', 'ryokourent' ); ?></option>
+					<option value="batu" <?php selected( $pool, 'batu' ); ?>><?php esc_html_e( 'Pool Batu (Diponegoro)', 'ryokourent' ); ?></option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_alamat_pengantaran"><?php esc_html_e( 'Lokasi Pengantaran (Ambil Unit)', 'ryokourent' ); ?></label></th>
+			<td><textarea id="ryokou_alamat_pengantaran" name="ryokou_alamat_pengantaran" rows="2" class="large-text"><?php echo esc_textarea( $alamat_antar ); ?></textarea></td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_alamat_penjemputan"><?php esc_html_e( 'Lokasi Penjemputan (Kembali Unit)', 'ryokourent' ); ?></label></th>
+			<td><textarea id="ryokou_alamat_penjemputan" name="ryokou_alamat_penjemputan" rows="2" class="large-text"><?php echo esc_textarea( $alamat_jemput ); ?></textarea></td>
+		</tr>
+		<tr>
+			<th><label for="ryokou_total_harga_estimasi"><?php esc_html_e( 'Total Estimasi Sewa (Rp)', 'ryokourent' ); ?></label></th>
+			<td><input type="number" id="ryokou_total_harga_estimasi" name="ryokou_total_harga_estimasi" value="<?php echo esc_attr( $total_est ); ?>" class="regular-text" /></td>
+		</tr>
+		<?php if ( $total_denda > 0 || ! empty( $catatan_denda ) ) : ?>
+		<tr style="background:#fff1f2;">
+			<th><?php esc_html_e( 'Kalkulasi Denda Terlambat (D-27)', 'ryokourent' ); ?></th>
+			<td>
+				<strong style="color:#b91c1c;font-size:15px;">Rp <?php echo esc_html( number_format( $total_denda, 0, ',', '.' ) ); ?></strong>
+				<?php if ( $catatan_denda ) : ?>
+					<p style="margin:4px 0 0 0;font-size:12px;color:#7f1d1d;"><?php echo esc_html( $catatan_denda ); ?></p>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<?php endif; ?>
+		<?php if ( $wa_link ) : ?>
+		<tr>
+			<th><?php esc_html_e( 'Tautan Pesan WhatsApp', 'ryokourent' ); ?></th>
+			<td>
+				<a href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener noreferrer" class="button button-primary">Buka Format WhatsApp Booking</a>
+			</td>
+		</tr>
+		<?php endif; ?>
+	</table>
+	<?php
+}
+
+/**
+ * 4. Simpan Meta untuk `motor`, `ryokou_unit` (Beserta Auto-Sync `ryokou_lacak`), `ryokou_paket`, & `penyewaan`
  */
 function ryokourent_save_custom_meta_boxes( $post_id, $post ) {
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -705,6 +853,40 @@ function ryokourent_save_custom_meta_boxes( $post_id, $post ) {
 		}
 		if ( isset( $_POST['ryokou_paket_motor_id'] ) ) {
 			update_post_meta( $post_id, '_ryokou_paket_motor_id', absint( $_POST['ryokou_paket_motor_id'] ) );
+		}
+	}
+
+	// 4.4 Simpan Meta `penyewaan` (Data Pelanggan D-21 Tanpa NIK, Lokasi & Tarif)
+	if ( 'penyewaan' === $post->post_type && isset( $_POST['ryokou_booking_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ryokou_booking_nonce'] ) ), 'ryokou_save_booking_meta' ) ) {
+		if ( isset( $_POST['ryokou_nama'] ) ) {
+			update_post_meta( $post_id, '_ryokou_nama', ryokourent_sanitize_text_no_nik( wp_unslash( $_POST['ryokou_nama'] ) ) );
+		}
+		if ( isset( $_POST['ryokou_nomor_wa'] ) ) {
+			update_post_meta( $post_id, '_ryokou_nomor_wa', ryokourent_sanitize_text_no_nik( wp_unslash( $_POST['ryokou_nomor_wa'] ) ) );
+		}
+		if ( isset( $_POST['ryokou_tanda_pelanggan'] ) ) {
+			$tanda = ( 'langganan' === $_POST['ryokou_tanda_pelanggan'] ) ? 'langganan' : 'baru';
+			update_post_meta( $post_id, '_ryokou_tanda_pelanggan', $tanda );
+		}
+		if ( isset( $_POST['ryokou_jenis_id_pendukung'] ) ) {
+			$allowed_ids = array( 'KTM', 'SIM_C', 'SIM_A', 'PASPOR', 'NPWP', 'ID_KARYAWAN', 'LAINNYA' );
+			$jid = sanitize_text_field( wp_unslash( $_POST['ryokou_jenis_id_pendukung'] ) );
+			if ( in_array( $jid, $allowed_ids, true ) ) {
+				update_post_meta( $post_id, '_ryokou_jenis_id_pendukung', $jid );
+			}
+		}
+		if ( isset( $_POST['ryokou_pool'] ) ) {
+			$pool = ( 'batu' === $_POST['ryokou_pool'] ) ? 'batu' : 'malang';
+			update_post_meta( $post_id, '_ryokou_pool', $pool );
+		}
+		if ( isset( $_POST['ryokou_alamat_pengantaran'] ) ) {
+			update_post_meta( $post_id, '_ryokou_alamat_pengantaran', ryokourent_sanitize_text_no_nik( wp_unslash( $_POST['ryokou_alamat_pengantaran'] ) ) );
+		}
+		if ( isset( $_POST['ryokou_alamat_penjemputan'] ) ) {
+			update_post_meta( $post_id, '_ryokou_alamat_penjemputan', ryokourent_sanitize_text_no_nik( wp_unslash( $_POST['ryokou_alamat_penjemputan'] ) ) );
+		}
+		if ( isset( $_POST['ryokou_total_harga_estimasi'] ) ) {
+			update_post_meta( $post_id, '_ryokou_total_harga_estimasi', absint( $_POST['ryokou_total_harga_estimasi'] ) );
 		}
 	}
 }
