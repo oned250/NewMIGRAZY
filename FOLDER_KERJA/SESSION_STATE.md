@@ -82,12 +82,11 @@ Catatan tulis-dahulu: isi SEBELUM memulai langkah multi-berkas, perbarui SESUDAH
 * [2026-10-23] 6 Model contoh dummy aktif di kedua platform: Honda Scoopy Prestige, Yamaha NMAX 155, Honda CRF 150L, Yamaha Fazzio Hybrid, Yamaha R15 V4, Honda BeAT Deluxe.
 * [2026-10-23] Multi-tier tarif, denda keterlambatan per jam, badge kategori (Matic, Retro, Trail, Sport), fasilitas, dan spesifikasi tertampil konsisten di [ryokou_katalog], form booking publik, dan /wp-json/ryokourent/v1/motor-models.
 * [2026-10-23] Fungsi seeder ryokourent_seed_sample_motors() dan endpoint /wp-json/ryokourent/v1/seed-motors aktif untuk inisialisasi database WordPress kapan saja.
-* [2026-10-23] Repositori dikelola penuh dengan ZLCE v3.2.2 Mode LITE; zlce-check lolos 0 error; compile & lint lolos 0 error.
-
 ---
 
 ## 7. LOG AUDIT (terbaru di atas; arsipkan entri lama ke `docs/archive/`)
 
+* **[2026-10-23 13:50:00 -07:00]:** Penyesuaian Minor: Menambahkan Kartu UI 3 "Impor Data Motor dari React (1-Klik)" pada halaman Pengaturan Operasional WP-Admin (`booking-columns.php`), memudahkan admin menyinkronkan 6 model motor secara instan ke database WordPress.
 * **[2026-10-23 11:57:55 -07:00]:** TASK-009 diselesaikan (Katalog & Model Motor WordPress diselaraskan 100% dengan Model 003 React, mencakup 6 model dummy, multi-tier pricing, spesifikasi, fasilitas, badge kategori, seeder, dan REST API).
 * **[2026-10-23 06:26:11 -07:00]:** Restrukturisasi ZLCE v3.2.2 Mode LITE selesai (BLUEPRINT.md, TASKS.md, SESSION_STATE.md, HANDOVER.md diselaraskan; scripts/zlce/ terpasang; validasi zlce-check lolos 0 error).
 * **[2026-10-23 05:37:33 -07:00]:** Penyelarasan berkas WordPress (forms, JS AJAX, booking backend, WhatsApp URL, kolom admin, metabox rincian booking, dan REST API) selesai terverifikasi.
