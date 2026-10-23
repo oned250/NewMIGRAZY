@@ -1,106 +1,148 @@
-# SPESIFIKASI TEKNIS & BLUEPRINT SISTEM: LANJUTAN RENTAL MOTOR (RYOKOURENT)
+# SPESIFIKASI TEKNIS & BLUEPRINT SISTEM: RYOKOURENT RENTAL MOTOR
 
-**Versi:** 3.0.0 (Restrukturisasi & Modul Alternatif Modern)  
-**Dokumen Kontrol:** BLUEPRINT.md (Disetujui Pengguna)  
-**Metodologi:** Zero-Loss Context Engineering (ZLCE v3.2 - Mode LITE)
+Spesifikasi sistem, batasan domain, matriks modul, dan NFR. Diperbarui bila task dengan `Docs Impact: BLUEPRINT` selesai.  
+Metodologi: **Zero-Loss Context Engineering (ZLCE v3.2.2 - Mode LITE)**.
 
 ---
 
 ## 1. PARAMETER SISTEM & LINGKUNGAN
 
-* **Nama Sistem:** Ryokourent Rental Management System
+* **Nama Sistem:** Ryokourent Rental Motor Management System (Malang Raya & Kota Batu)
 * **Profil Domain:** `booking`
-* **Lingkungan Sistem:**
-  - **Stack Eksisting (Baseline Teruji):** WordPress 6.x+, PHP 8.1+, MySQL/MariaDB 10.4+, Plugin `ryokourent-core`, Child Theme `generatepress-child`.
-  - **Stack Alternatif Modern (Target Evaluasi):** React 19, TypeScript, Vite, Tailwind CSS v4, Lucide React, Modern REST API Architecture.
-* **Versi Dependensi Kunci:**
-  - React: 19.x
-  - Tailwind CSS: v4
-  - Lucide Icons: latest
-  - Node.js Runtime: 20+ LTS
+* **Lingkungan Produksi:**
+  - **Runtime:** Node.js 20+ LTS, TypeScript 5.x
+  - **Framework:** Next.js 15+ (App Router), React 19
+  - **Database:** Google Cloud SQL (PostgreSQL 16) via Drizzle ORM (Arsitektur Modern Decoupled) & MySQL 8.0 / MariaDB (WordPress Native Co-existence)
+  - **Styling & UI:** Tailwind CSS v4, Lucide React
+  - **CMS / WP Co-existence:** WordPress 6.x+, PHP 8.1+, Plugin `ryokourent-core`, Theme `generatepress-child`
+* **Versi Dependensi Terverifikasi:**
 
----
-
-## 2. BATASAN DOMAIN BISNIS (BR-xx)
-
-1. **Aturan Bisnis Kunci (`BR-xx` / Mengadopsi `D-01..D-31`):**
-   - `BR-01 (Anti Double-Booking & Atomic Lock)`:
-     - Dua pemesanan pada unit fisik yang sama tidak boleh bertabrakan jadwalnya.
-     - Setiap unit fisik wajib memiliki jeda *Turnaround Buffer* 90 menit (5400 detik) di awal dan akhir rentang sewa.
-     - Penguncian unit wajib bersifat atomik (`SELECT GET_LOCK` atau transaksi database `SELECT FOR UPDATE`).
-   - `BR-02 (State Machine 4 Status Resmi)`:
-     - Alur pesanan: `Booking` (stok belum terkunci) $\to$ `Approve Booking` (unit fisik dikunci) $\to$ `Disewa` (serah terima kunci & motor dibawa penyewa) $\to$ `Selesai` (motor kembali & unit bebas kembali).
-     - Pembatalan (`Reject`/`Cancel`) hanya dapat dilakukan sebelum status `Disewa`.
-   - `BR-03 (Pool Sebagai Tempat Parkir Global & CPT Lacak Unit)`:
-     - Pool Malang dan Pool Batu hanya berfungsi sebagai tempat parkir fisik (armada tidak dibagi kuota kaku per pool).
-     - Setiap unit armada fisik memiliki 1 entri status posisi real-time:
-       1. `Parkir`: berada di Pool mana (`Pool Malang` / `Pool Batu`).
-       2. `Servis`: berada di Bengkel mana (nama bengkel, kontak mekanik, estimasi selesai).
-       3. `Disewa`: sedang disewa siapa (nama penyewa, nomor booking, jadwal/tenggat kembali).
-   - `BR-04 (Skema Tarif 2 Kategori + Denda ShortRent Bertingkat)`:
-     - Tarif Harian: 1 Hari (24 Jam — Tampilan Utama), 1 Minggu (7 Hari), 2 Minggu (14 Hari).
-     - Tarif Jam (ShortRent): 12 Jam, 9 Jam, 6 Jam, 3 Jam.
-     - Aturan Denda ShortRent: Keterlambatan $\ge 60$ menit otomatis naik tagihan ke kategori jam di atasnya (`3j -> 6j -> 9j -> 12j`). Untuk paket 12 Jam, denda keterlambatan sama dengan denda harian per jam.
-   - `BR-05 (Kepatuhan Privasi UU PDP No. 27/2022)`:
-     - Database dilarang menyimpan NIK KTP 16 digit, foto KTP, alamat lengkap KTP, atau IP address pelanggan.
-     - Verifikasi identitas menggunakan jenis ID pendukung (`SIM_C`, `KTM`, `SIM_A`, `PASPOR`, `NPWP`, `ID_KARYAWAN`, `LAINNYA`).
-   - `BR-06 (Proteksi Kode Lama Tanpa Konfirmasi)`:
-     - Sesuai `D-31`, seluruh modul dan fitur yang sudah berjalan di `wp-content/plugins/ryokourent-core` tidak boleh dihapus atau ditimpa secara destruktif.
-
----
-
-## 3. MATRIKS MODUL SISTEM
-
-| ID Modul | Nama Modul | Fungsi Utama | Ketergantungan |
+| Dependensi | Versi | Sumber Verifikasi | Tanggal |
 | :--- | :--- | :--- | :--- |
-| `MOD-01` | Katalog & Model Motor | Manajemen tipe model motor, spesifikasi, dan multi-tier tarif (Harian & Jam). | Core DB |
-| `MOD-02` | Unit Fisik Armada | Manajemen unit fisik garasi (Kode Unit permanen, plat nomor, warna, status kesiapan). | `MOD-01` |
-| `MOD-03` | Lacak Posisi Unit | Monitoring real-time lokasi fisik unit (Parkir Pool, Servis Bengkel, Sedang Disewa). | `MOD-02` |
-| `MOD-04` | Availability & Atomic Lock | Mesin kalkulasi ketersediaan global, buffer 90 menit, dan pencegahan double-booking. | `MOD-02`, `MOD-03` |
-| `MOD-05` | Transaksi & State Machine | Alur pemesanan publik, approve booking, serah terima, tukar unit berkala, dan selesai. | `MOD-04` |
-| `MOD-06` | Kalkulator Denda | Otomatisasi hitung denda harian dan denda ShortRent step-up 60 menit. | `MOD-05` |
-| `MOD-07` | Dashboard Operator & Admin | Manajemen pemesanan, filter lacak unit, audit log nomor WhatsApp, dan bulk pricing. | `MOD-01` s/d `MOD-06` |
-| `MOD-08` | Modul Alternatif Modern (Vite/React) | Aplikasi web modern mandiri (decoupled frontend/fullstack) di luar WordPress. | `MOD-01` s/d `MOD-07` |
+| `next` | `15.3.x` | package.json / lockfile | 2026-10-23 |
+| `react` / `react-dom` | `19.x` | package.json / lockfile | 2026-10-23 |
+| `drizzle-orm` | `^0.40.0` | package.json / lockfile | 2026-10-23 |
+| `@tailwindcss/postcss` | `^4.0.0` | package.json / lockfile | 2026-10-23 |
+| `lucide-react` | `^1.16.0` | package.json / lockfile | 2026-10-23 |
+| `@google/genai` | `^0.1.1` | package.json / lockfile | 2026-10-23 |
+
+* **Standar Keamanan:**
+  - **Transit:** HTTPS / TLS 1.3
+  - **Masukan:** Validasi tipe ketat server-side, proteksi Honeypot, Signed Time Token >= 4 detik, dan dual rate-limit hash IP
+  - **Injeksi:** Kueri terparameter 100% via Drizzle ORM (PostgreSQL) dan `$wpdb->prepare` (WordPress)
+  - **Privasi (UU PDP No. 27/2022):** Dilarang menyimpan 16 digit NIK KTP, foto KTP, alamat KTP, atau IP address pelanggan
+  - **Rahasia:** `.env` / Cloud Secrets Manager; tidak ada kredensial terekspos di client
 
 ---
 
-## 4. PERBANDINGAN & ANALISIS ALTERNATIF NON-WORDPRESS
+## 2. BATASAN DOMAIN BISNIS
 
-| Kriteria Evaluasi | WordPress Native (`ryokourent-core`) | Alternatif Modern (React 19 + TypeScript + REST/PostgreSQL) |
-| :--- | :--- | :--- |
-| **Arsitektur** | Monolitik CMS (PHP, MySQL, WP Hooks/Filter). | Decoupled / Modern SPA (React UI + Backend API terisolasi). |
-| **Kecepatan & UX** | Bergantung pada caching WP dan performa shared hosting. | Instan, reaktif, SPA tanpa reload, navigasi responsif dan mulus. |
-| **Pencegahan Double-Booking** | Mengandalkan MySQL `GET_LOCK()` dan transient lock PHP. | Database ACID Transaction dengan `SERIALIZABLE` / row-level lock (`SELECT FOR UPDATE`). |
-| **Biaya Pemeliharaan** | Rendah di shared hosting, namun rentan konflik plugin/update core WP. | Bebas dari bloatware WordPress; kode bersih dan dapat di-containerize (Docker). |
-| **Pengelolaan State** | Bergantung pada AJAX `admin-ajax.php` / REST WP API. | State management modern (React State, Zustand/TanStack Query) tipe-aman (*strict TypeScript*). |
+1. **Aturan Bisnis (BR-xx):**
+   - `BR-01 (Anti Double-Booking & Turnaround Buffer)`:
+     - Dua transaksi sewa pada satu unit fisik tidak boleh saling tumpang tindih.
+     - Setiap pemesanan wajib memiliki jeda buffer 90 menit (5400 detik) di awal dan akhir rentang sewa.
+     - Status `disewa` yang melewati jadwal kembali secara otomatis memperpanjang proteksi bentrok (`max(end_epoch, now)`).
+   - `BR-02 (State Machine 4 Status Resmi)`:
+     - Transisi siklus sewa resmi: `Booking` (draft) $\to$ `Approved` (unit fisik terkunci) $\to$ `Disewa` (serah terima motor ke pelanggan) $\to$ `Selesai` (unit kembali dan diperiksa).
+     - Pembatalan (`Reject` / `Cancel`) hanya diizinkan sebelum status `Disewa`.
+   - `BR-03 (Pool Sebagai Tempat Parkir Fisik Global & Lacak 1-Unit-1-Baris)`:
+     - Pool Malang (Dinoyo) dan Pool Batu (Diponegoro) hanya tempat parkir fisik (ketersediaan armada dihitung global).
+     - Setiap unit fisik memiliki tepat 1 baris pemantauan real-time di `lacak_units`: `parkir` (Malang/Batu), `servis` (nama bengkel & estimasi), atau `disewa` (tenggat kembali).
+   - `BR-04 (Multi-Tier Tarif & Denda ShortRent Step-Up)`:
+     - Kategori Harian: 1 Hari (24 Jam — Tampilan Utama), 1 Minggu (7 Hari), 2 Minggu (14 Hari).
+     - Kategori ShortRent: 12 Jam, 9 Jam, 6 Jam, 3 Jam.
+     - Denda ShortRent: Keterlambatan $\ge 60$ menit otomatis naik ke paket jam di atasnya (`3j -> 6j -> 9j -> 12j`). Paket 12 jam dikenakan denda sama dengan denda harian.
+   - `BR-05 (Kepatuhan UU PDP No. 27/2022)`:
+     - Formulir publik dan database tidak mencatat NIK KTP. Validasi menggunakan identitas pendukung non-NIK (`SIM_C`, `KTM`, `SIM_A`, `PASPOR`, `NPWP`, `ID_KARYAWAN`, `LAINNYA`).
+   - `BR-06 (Immutability Kode Unit & Proteksi Kode Eksisting D-31)`:
+     - Kode unit garasi (misal `B122`, `M101`) bersifat permanen (readonly) setelah dibuat pertama kali.
+     - Berkas WordPress di `wp-content/` terproteksi 100% dan berjalan berdampingan tanpa saling merusak.
+
+2. **Lingkup & Batas Operasional:**
+   - **Wilayah Layanan:** Malang Raya (Kota Malang, Kabupaten Malang) dan Kota Wisata Batu.
+   - **Jam Layanan Reguler:** 07.00 – 23.00 WIB. Pemesanan di luar jam reguler tetap dapat diajukan dengan penandaan khusus persetujuan operasional via WhatsApp.
+
+3. **Out of Scope:**
+   - Integrasi payment gateway otomatis dengan verifikasi NIK KTP kaku pihak ketiga.
+   - Penyekatan kaku kuota armada antar pool (stok tetap global sesuai Opsi 2A).
 
 ---
 
-## 5. NON-FUNCTIONAL REQUIREMENTS (NFR)
+## 3. MATRIKS MODUL
 
-1. **Integritas Konkurensi:** Tidak boleh terjadi *race condition* atau alokasi ganda pada unit motor yang sama di rentang waktu yang beririsan.
-2. **Kinerja Frontend:** Waktu pemuatan halaman awal (LCP) < 1.5 detik, respons interaksi dropdown filter < 100ms.
-3. **Auditability:** Setiap perubahan status transaksi, pergantian unit berkala, dan update posisi unit wajib mencatat timestamp WIB dan identitas operator.
-4. **Keamanan Data Pribadi:** Nol penyimpanan data sensitif KTP/NIK sesuai UU PDP.
-
----
-
-## 6. MODEL DATA RINGKAS (MODE LITE)
-
-1. **Entitas Model Motor (`motor`):**
-   - Atribut: `id`, `nama_model`, `kategori` (`Matic`, `Sport`, `Trail`, `Retro`), `harga_1hari`, `harga_1minggu`, `harga_2minggu`, `harga_12jam`, `harga_9jam`, `harga_6jam`, `harga_3jam`, `denda_harian_per_jam`.
-2. **Entitas Unit Armada Fisik (`ryokou_unit`):**
-   - Atribut: `id`, `kode_unit` (Unik & Readonly, misal `B122`), `motor_id`, `nomor_plat`, `warna`, `pool_parkir_default`, `status_servis`.
-3. **Entitas Lacak Posisi Unit (`ryokou_lacak`):**
-   - Atribut (1-unit-1-baris): `unit_id`, `status_posisi` (`parkir` | `servis` | `disewa`), `pool_parkir` (`malang` | `batu`), `nama_bengkel`, `kontak_bengkel`, `estimasi_selesai`, `booking_id`, `nama_penyewa`, `tenggat_kembali`, `updated_at`, `updated_by`.
-4. **Entitas Transaksi Penyewaan (`penyewaan`):**
-   - Atribut: `id`, `no_booking` (`RYK-YYYYMMDD-XXX`), `nama_penyewa`, `jenis_id_pendukung`, `pool_area`, `alamat_antar`, `alamat_jemput`, `motor_id`, `unit_id`, `status` (`Booking`, `Approve`, `Disewa`, `Selesai`), `start_epoch`, `end_epoch`, `total_biaya`, `denda_akhir`, `riwayat_tukar_unit`.
+| ID Modul | Nama Modul | Fungsi Utama | Dependensi |
+| :--- | :--- | :--- | :--- |
+| `MOD-01` | Core & Schema | Skema Cloud SQL PostgreSQL, Drizzle ORM, konfigurasi lingkungan Next.js 15 | Runtime |
+| `MOD-02` | Motor Models | Manajemen tipe motor, multi-tier pricing (Harian & ShortRent), simulator denda | `MOD-01` |
+| `MOD-03` | Armada Units | Manajemen unit fisik garasi, kode unit readonly (D-12), sinkronisasi otomatis status servis | `MOD-02` |
+| `MOD-04` | State Machine | Siklus 4 status transaksi, buffer 90 menit (D-17), atomic lock, kalkulator denda otomatis | `MOD-03` |
+| `MOD-05` | Live Tracking | Monitoring live posisi fisik 1-baris-per-unit (Parkir Pool, Servis, Disewa) | `MOD-03`, `MOD-04` |
+| `MOD-06` | Public Portal | Katalog interaktif, indikator stok biner (D-05), form booking patuh UU PDP (D-21) | `MOD-02`, `MOD-04` |
+| `MOD-07` | Headless REST API | REST controller Next.js (`/api/*`) dan WordPress (`/wp-json/ryokourent/v1/*`) | `MOD-01` s/d `MOD-06` |
+| `MOD-08` | WP Native Co-existence | Plugin `ryokourent-core` (forms, columns, metabox, WhatsApp redirect) | Runtime WP |
 
 ---
 
-## 7. STRATEGI PENGUJIAN (MODE LITE)
+## 4. INTEGRASI EKSTERNAL
 
-1. **Uji Validasi Ketersediaan (Anti Double-Booking):** Simulasi pemesanan bentrok pada unit yang sama di rentang overlap (termasuk buffer 90 menit) wajib menghasilkan status *Conflict/Unavailable*.
-2. **Uji Transisi State Machine:** Pengujian transisi status secara sekuensial dan verifikasi sinkronisasi otomatis ke tabel Lacak Unit.
-3. **Uji Step-Up Denda ShortRent:** Verifikasi keterlambatan 60 menit pada sewa 3 Jam, 6 Jam, 9 Jam, dan 12 Jam sesuai formula `BR-04`.
-4. **Uji Kepatuhan Privasi (UU PDP):** Verifikasi sanitasi teks yang menolak string 16 digit angka berurutan.
+* **Notifikasi WhatsApp:** Generator format tautan `https://api.whatsapp.com/send` dengan karakter UTF-8 terenkode rapi (`rawurlencode`) mencantumkan rincian pesanan, nomor booking, durasi, dan ketentuan denda.
+* **Database Relasional:** Google Cloud SQL (PostgreSQL) via connection pooling server-side.
+* **Autentikasi Operator:** Firebase Auth & session management untuk dasbor admin.
+
+---
+
+## 5. NFR (NON-FUNCTIONAL REQUIREMENTS)
+
+1. **Performa:** Waktu respons REST API backend p95 < 250ms; First Contentful Paint < 1.2s; LCP < 2.0s.
+2. **Ketersediaan & ACID:** 99.9% uptime dengan pencegahan balapan stok (*race conditions*) melalui transaksi atomik dan turnaround buffer.
+3. **Auditability:** Setiap perubahan status transaksi, pergantian unit berkala, dan penyesuaian posisi tercatat lengkap dengan timestamp ISO 8601 WIB dan penanggung jawab.
+
+---
+
+## 6. ASUMSI & PERTANYAAN TERBUKA AWAL
+
+| ID | Jenis | Isi | Dampak jika salah | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `ASM-01` | Asumsi | Restrukturisasi ZLCE v3.2.2 dijalankan dengan Mode LITE (4 berkas kontrol di `FOLDER_KERJA/`). | Struktur direktori dan dokumentasi tetap ramping & terfokus. | CONFIRMED |
+| `ASM-02` | Asumsi | Seluruh hasil kerja dari `TASK-001` s/d `TASK-008` dipertahankan utuh sebagai baseline terverifikasi. | Tidak ada penulisan ulang kode yang sudah beroperasi 100% lulus. | CONFIRMED |
+| `ASM-03` | Asumsi | Skrip diagnostik ZLCE v3.2.2 ditempatkan di `scripts/zlce/` (`zlce-check.py` & `zlce-collect.py`). | Validasi kepatuhan ZLCE dapat dijalankan otomatis. | CONFIRMED |
+| `Q-04` | Pertanyaan | Apakah ada fitur atau modul tambahan baru yang ingin ditambahkan ke backlog setelah restrukturisasi ini? | Menentukan apakah task berikutnya adalah penambahan task baru atau persiapan rilis/handover. | OPEN |
+
+---
+
+## 7. MODEL DATA RINGKAS (MODE LITE)
+
+### 7.1 Tabel Relasional (Cloud SQL PostgreSQL via Drizzle ORM)
+
+1. **`motor_models`:**
+   - Kolom: `id` (SERIAL PK), `nama` (VARCHAR NOT NULL), `kategori` (VARCHAR), `harga_harian` (INT), `harga_1minggu` (INT), `harga_2minggu` (INT), `harga_12jam` (INT), `harga_9jam` (INT), `harga_6jam` (INT), `harga_3jam` (INT), `denda_harian` (INT), `fasilitas` (TEXT), `spesifikasi` (TEXT), `gambar_url` (TEXT), `aktif` (BOOLEAN DEFAULT TRUE).
+2. **`armada_units`:**
+   - Kolom: `id` (SERIAL PK), `kode_unit` (VARCHAR UNIQUE NOT NULL, Immutability D-12), `parent_motor_id` (INT FK -> motor_models.id), `nomor_plat` (VARCHAR), `warna` (VARCHAR), `status_servis` (VARCHAR 'aktif' | 'servis'), `nama_bengkel` (VARCHAR), `pool_lokasi` (VARCHAR 'malang' | 'batu'), `odometer` (INT), `created_at` (TIMESTAMP).
+3. **`lacak_units`:**
+   - Kolom: `id` (SERIAL PK), `unit_id` (INT UNIQUE FK -> armada_units.id, 1-Unit-1-Baris Opsi 3A), `kode_unit` (VARCHAR), `status_posisi` (VARCHAR 'parkir' | 'servis' | 'disewa'), `pool_parkir` (VARCHAR 'malang' | 'batu'), `nama_bengkel` (VARCHAR), `booking_id_aktif` (INT), `updated_at` (TIMESTAMP), `catatan` (TEXT).
+4. **`penyewaan`:**
+   - Kolom: `id` (SERIAL PK), `no_booking` (VARCHAR UNIQUE), `nama_penyewa` (VARCHAR NOT NULL, UU PDP), `nomor_wa` (VARCHAR NOT NULL), `tanda_pelanggan` (VARCHAR 'baru' | 'langganan'), `jenis_id_pendukung` (VARCHAR NOT NULL), `motor_id` (INT FK), `unit_id` (INT FK NULLABLE), `status` (VARCHAR 'booking' | 'approved' | 'disewa' | 'selesai' | 'dibatalkan'), `pool` (VARCHAR 'malang' | 'batu'), `alamat_pengantaran` (TEXT), `alamat_penjemputan` (TEXT), `jam_tanggal_mulai` (VARCHAR), `jam_tanggal_selesai` (VARCHAR), `start_epoch` (BIGINT), `end_epoch` (BIGINT), `total_harga_estimasi` (INT), `total_denda` (INT DEFAULT 0), `catatan_denda` (TEXT), `created_at` (TIMESTAMP).
+
+### 7.2 State Machine Transaksi (`penyewaan.status`)
+
+| Dari | Ke | Pemicu | Guard (Syarat) |
+| :--- | :--- | :--- | :--- |
+| `booking` | `approved` | Operator klik *Approve & Kunci Unit* | Unit fisik bebas dari bentrok + buffer 90 menit |
+| `booking` | `dibatalkan` | Operator klik *Reject / Cancel* | Belum disetujui / stok tidak tersedia |
+| `approved` | `disewa` | Operator klik *Mulai Sewa (Serah Terima)* | Pelanggan tiba & identitas pendukung diverifikasi |
+| `approved` | `dibatalkan` | Pembatalan sebelum motor diserahkan | Dilarang membatalkan jika sudah disewa (AC-02) |
+| `disewa` | `selesai` | Operator klik *Selesai & Hitung Denda* | Motor dikembalikan; denda otomatis dihitung jika telat |
+
+---
+
+## 8. STRATEGI UJI (MODE LITE)
+
+1. **Uji Linter & Tipe:** `npm run lint` — Memastikan 0 sintaksis error dan konsistensi tipe TypeScript.
+2. **Uji Kompilasi:** `npm run build` (`compile_applet`) — Memastikan bundler Next.js 15 App Router lulus kompilasi tanpa modul hilang.
+3. **Uji Fungsional & E2E API:** Pengujian automated HTTP Python script terhadap 5 skenario inti:
+   - Skenario 1: `GET /api/motor-models` (multi-tier pricing & kalkulator)
+   - Skenario 2: `GET /api/armada-units` (unit garasi & immutability kode)
+   - Skenario 3: `GET /api/lacak-units` (monitoring live 1-baris-per-unit)
+   - Skenario 4: `GET /api/penyewaan/available-units` (Turnaround buffer 90m & anti double-booking)
+   - Skenario 5: `POST /api/penyewaan` (Pemesanan patuh UU PDP No. 27/2022)
+4. **Uji Validasi Protokol ZLCE:** `python3 scripts/zlce/zlce-check.py FOLDER_KERJA --no-git` — Wajib menghasilkan `RESULT: OK (0 error)`.
