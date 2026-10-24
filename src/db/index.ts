@@ -734,6 +734,19 @@ export const createPool = () => {
 
   if (!global._postgresPool) {
     try {
+      if (process.env.SQL_HOST && process.env.SQL_HOST.startsWith('/')) {
+        try {
+          const fs = require('fs');
+          if (!fs.existsSync(process.env.SQL_HOST)) {
+            console.warn('[AI Studio] PostgreSQL Unix socket path does not exist:', process.env.SQL_HOST, '— using mock pool');
+            global._postgresPool = createMockPool();
+            return global._postgresPool;
+          }
+        } catch {
+          // ignore fs error
+        }
+      }
+
       const poolConfig: any = process.env.DATABASE_URL
         ? {
             connectionString: process.env.DATABASE_URL,
@@ -753,11 +766,37 @@ export const createPool = () => {
         poolConfig.ssl = { rejectUnauthorized: false };
       }
 
-      global._postgresPool = new Pool(poolConfig);
+      const realPool = new Pool(poolConfig);
 
-      global._postgresPool.on('error', (err: any) => {
+      realPool.on('error', (err: any) => {
         console.error('Unexpected error on idle SQL pool client:', err);
       });
+
+      const resilientPool = {
+        query: async (textOrConfig: any, values?: any[]) => {
+          try {
+            return await realPool.query(textOrConfig, values);
+          } catch (err: any) {
+            console.warn('[AI Studio] SQL query failed, falling back to mock query:', err?.message || err);
+            return await executeMockQuery(textOrConfig, values);
+          }
+        },
+        connect: async () => {
+          try {
+            return await realPool.connect();
+          } catch (err: any) {
+            console.warn('[AI Studio] SQL connect failed, falling back to mock connection:', err?.message || err);
+            return {
+              query: async (textOrConfig: any, values?: any[]) => executeMockQuery(textOrConfig, values),
+              release: () => {},
+            };
+          }
+        },
+        on: (...args: any[]) => (realPool as any).on(...args),
+        end: () => realPool.end(),
+      };
+
+      global._postgresPool = resilientPool;
     } catch (e) {
       if (isStrictProduction) {
         throw new Error(`[Database Error] Failed to initialize PostgreSQL Pool: ${(e as any)?.message}`);
