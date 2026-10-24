@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, penyewaan, motorModels, armadaUnits } from '@/lib/db';
 import { eq, desc, asc, and } from 'drizzle-orm';
+import { checkAuthHeader } from '@/lib/auth';
 
 // Helper format No Booking: RYK-YYYYMMDD-XXX
 function generateNoBooking(): string {
@@ -128,6 +129,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Proteksi UU PDP No. 27/2022 (D-21): Dilarang input NIK 16 digit ke dalam database
+    const nikRegex = /(?:\d[\s\-]?){16}/;
+    if (nikRegex.test(namaPenyewa) || nikRegex.test(alamatPengantaran || '') || nikRegex.test(alamatPenjemputan || '')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Pelanggaran Privasi UU PDP No. 27/2022 (D-21): Dilarang memasukkan nomor identitas NIK 16 digit ke dalam sistem.',
+        },
+        { status: 400 }
+      );
+    }
+
     // Ambil data model motor
     const mRes = await db
       .select()
@@ -140,37 +153,43 @@ export async function POST(req: Request) {
     }
     const model = mRes[0];
 
-    // Hitung biaya estimasi berdasarkan durasi jika tidak ditentukan manual
-    let hitungBiaya = totalBiayaManual;
+    // Hitung biaya resmi di sisi server berdasarkan tarif model motor (K-02)
     const kategoriTarif = ['12_jam', '9_jam', '6_jam', '3_jam'].includes(pilihanDurasi) ? 'jam' : 'harian';
+    let serverBiaya = model.harga1Hari;
 
-    if (!hitungBiaya) {
-      switch (pilihanDurasi) {
-        case '1_hari':
-          hitungBiaya = model.harga1Hari;
-          break;
-        case '1_minggu':
-          hitungBiaya = model.harga1Minggu;
-          break;
-        case '2_minggu':
-          hitungBiaya = model.harga2Minggu;
-          break;
-        case '12_jam':
-          hitungBiaya = model.harga12Jam;
-          break;
-        case '9_jam':
-          hitungBiaya = model.harga9Jam;
-          break;
-        case '6_jam':
-          hitungBiaya = model.harga6Jam;
-          break;
-        case '3_jam':
-          hitungBiaya = model.harga3Jam;
-          break;
-        default:
-          hitungBiaya = model.harga1Hari;
-      }
+    switch (pilihanDurasi) {
+      case '1_hari':
+        serverBiaya = model.harga1Hari;
+        break;
+      case '1_minggu':
+        serverBiaya = model.harga1Minggu;
+        break;
+      case '2_minggu':
+        serverBiaya = model.harga2Minggu;
+        break;
+      case '12_jam':
+        serverBiaya = model.harga12Jam;
+        break;
+      case '9_jam':
+        serverBiaya = model.harga9Jam;
+        break;
+      case '6_jam':
+        serverBiaya = model.harga6Jam;
+        break;
+      case '3_jam':
+        serverBiaya = model.harga3Jam;
+        break;
+      default:
+        serverBiaya = model.harga1Hari;
     }
+
+    // Server-side enforcement: publik selalu memakai tarif resmi server.
+    // Override totalBiayaManual hanya diizinkan untuk operator terautentikasi (K-02).
+    const isAuthorizedOperator = checkAuthHeader(req);
+    const hitungBiaya =
+      isAuthorizedOperator && typeof totalBiayaManual === 'number' && totalBiayaManual > 0
+        ? totalBiayaManual
+        : serverBiaya;
 
     const calcStartEpoch = startEpoch ? Number(startEpoch) : Math.floor(new Date(jamTanggalMulai).getTime() / 1000);
     const calcEndEpoch = endEpoch ? Number(endEpoch) : Math.floor(new Date(jamTanggalSelesai).getTime() / 1000);

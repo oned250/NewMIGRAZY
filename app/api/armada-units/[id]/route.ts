@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, armadaUnits, motorModels, lacakUnits, penyewaan } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 // GET /api/armada-units/[id]
 export async function GET(
@@ -66,6 +67,9 @@ export async function PUT(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const params = await props.params;
     const unitId = parseInt(params.id, 10);
     if (isNaN(unitId)) {
@@ -211,6 +215,9 @@ export async function DELETE(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await requireRole(req, ['admin']);
+    if (authError) return authError;
+
     const params = await props.params;
     const unitId = parseInt(params.id, 10);
     if (isNaN(unitId)) {

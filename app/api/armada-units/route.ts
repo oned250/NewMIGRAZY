@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, armadaUnits, motorModels, lacakUnits, penyewaan } from '@/lib/db';
 import { eq, asc, desc, and, or, ilike, sql } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 // GET /api/armada-units - Daftar unit armada fisik beserta info model dan status lacak real-time
 export async function GET(req: Request) {
@@ -92,6 +93,9 @@ export async function GET(req: Request) {
 // POST /api/armada-units - Mendaftarkan unit fisik baru dengan kode_unit unik (AC-01 & AC-03)
 export async function POST(req: Request) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const body = await req.json();
     const {
       kodeUnit,

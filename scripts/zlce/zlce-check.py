@@ -56,9 +56,15 @@ def main(argv):
             filtered_args.append(a)
     root = filtered_args[0] if filtered_args else "."
     sp = ap_state or os.path.join(root, "SESSION_STATE.md")
+    control_dir = os.path.dirname(sp) if ap_state else root
     if not os.path.exists(sp):
-        print("[ERROR] %s tidak ditemukan" % sp)
-        return 2
+        alt_sp = os.path.join(root, "FOLDER_KERJA", "SESSION_STATE.md")
+        if not ap_state and os.path.exists(alt_sp):
+            sp = alt_sp
+            control_dir = os.path.join(root, "FOLDER_KERJA")
+        else:
+            print("[ERROR] %s tidak ditemukan" % sp)
+            return 2
     text = read(sp)
     errors, warns, infos = [], [], []
 
@@ -146,7 +152,11 @@ def main(argv):
                 warns.append("WAL terisi tetapi '%s' kosong" % k)
 
     # --- TASKS.md silang
-    tp = os.path.join(root, "TASKS.md")
+    tp = os.path.join(control_dir, "TASKS.md")
+    if not os.path.exists(tp):
+        tp = os.path.join(root, "TASKS.md")
+    if not os.path.exists(tp) and os.path.exists(os.path.join(root, "FOLDER_KERJA", "TASKS.md")):
+        tp = os.path.join(root, "FOLDER_KERJA", "TASKS.md")
     if os.path.exists(tp):
         tids = set(re.findall(r"^###\s+(%s)\b" % TID, read(tp), re.M))
         for t in sorted(tids - set(ids)):

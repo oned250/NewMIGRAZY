@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, motorModels, armadaUnits } from '@/lib/db';
 import { asc, eq, sql } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -38,6 +39,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const body = await req.json();
     const {
       namaModel,
