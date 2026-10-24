@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, penyewaan, motorModels, armadaUnits, lacakUnits } from '@/lib/db';
 import { eq, and, or, sql } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 // GET /api/penyewaan/[id] - Ambil detail transaksi
 export async function GET(
@@ -73,6 +74,9 @@ export async function PUT(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const params = await props.params;
     const bookingId = parseInt(params.id, 10);
     if (isNaN(bookingId)) {
@@ -493,6 +497,9 @@ export async function DELETE(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const params = await props.params;
     const bookingId = parseInt(params.id, 10);
     if (isNaN(bookingId)) {

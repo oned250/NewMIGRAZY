@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, motorModels, armadaUnits } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -24,6 +25,9 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 
 export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const params = await props.params;
     const modelId = parseInt(params.id, 10);
     if (isNaN(modelId)) {
@@ -84,6 +88,9 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 
 export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
+    const authError = await requireRole(req, ['admin']);
+    if (authError) return authError;
+
     const params = await props.params;
     const modelId = parseInt(params.id, 10);
     if (isNaN(modelId)) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, armadaUnits, lacakUnits } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 // POST /api/armada-units/[id]/servis - Aksi cepat kirim unit ke bengkel atau selesai servis
 export async function POST(
@@ -8,6 +9,9 @@ export async function POST(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const params = await props.params;
     const unitId = parseInt(params.id, 10);
     if (isNaN(unitId)) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, lacakUnits, armadaUnits, motorModels } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { requireRole } from '@/lib/auth';
 
 // GET /api/lacak-units/[id] - Ambil detail monitoring unit
 export async function GET(
@@ -63,6 +64,9 @@ export async function PUT(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await requireRole(req, ['admin', 'operator']);
+    if (authError) return authError;
+
     const params = await props.params;
     const lacakId = parseInt(params.id, 10);
     if (isNaN(lacakId)) {

@@ -17,12 +17,15 @@ import {
   Bike,
   KeyRound,
   Globe,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import MotorModelManager from '@/components/admin/MotorModelManager';
 import ArmadaUnitManager from '@/components/admin/ArmadaUnitManager';
 import BookingStateMachineManager from '@/components/admin/BookingStateMachineManager';
 import LiveUnitTrackingDashboard from '@/components/admin/LiveUnitTrackingDashboard';
 import CustomerBookingPortal from '@/components/public/CustomerBookingPortal';
+import ZlceStudioWorkbench from '@/components/zlce/ZlceStudioWorkbench';
 
 type UnitPositionStatus = 'parkir' | 'servis' | 'disewa';
 type PoolLocation = 'malang' | 'batu';
@@ -295,13 +298,38 @@ const MD_FILES_CONTENT: Record<string, { title: string; path: string; summary: s
 | D-28 | Tata Kelola Mode Ringkas & Pengecualian Panduan: Urutan kerja wajib Checkpoint-First & Kode-Dulu. | File tutorial/panduan di docs/ tidak dibaca rutin dan hanya diubah jika diminta di NEW_TASK.md. |
 | D-29 | Organisasi 3 Folder MD (FOLDER_KERJA/, docs/, ARSIP/) & Pemisahan Input Tugas ke NEW_TASK.md. | HANDOVER.md bersifat statis; user cukup meng-upload 1 folder (FOLDER_KERJA/) di setiap sesi. |`,
   },
+  panduan_recovery: {
+    title: '5. docs/PANDUAN_WIZARD_RECOVERY_ZLCE.md (Tutorial Pemulihan Sesi)',
+    path: 'docs/PANDUAN_WIZARD_RECOVERY_ZLCE.md',
+    summary: 'Tutorial 4 langkah pemakaian Wizard Recovery untuk sesi AI terputus di HP/Android & desktop.',
+    content: `# PANDUAN PENGGUNAAN FITUR WIZARD RECOVERY ZLCE v3.2.2
+## Ryokourent Rental Motor Management System
+
+### CARA AKSES CEPAT DARI BROWSER ANDROID:
+1. Tekan tombol hijau "⚡ Wizard Recovery" di pojok kanan atas console atau tab pertama "Wizard Recovery ZLCE".
+2. Langkah 1 (Opsi): Pilih skenario "Sesi AI Terputus Tiba-tiba", centang Git Diff (--diff) dan Simpan Arsip.
+3. Langkah 2 (Eksekusi): Tekan "⚡ Eksekusi & Buat Snapshot Sekarang".
+4. Langkah 3 (Diagnostik): Sistem otomatis mencocokkan status dengan WAL dan mendeteksi Kasus A/B/C/D.
+5. Langkah 4 (Handover): Tekan tombol hijau "📋 Salin Bundel Handover All-in-One".
+6. Buka tab chat AI baru di Android -> Tempel (Paste) & Kirim! AI baru langsung melanjutkan tanpa mengulang dari awal.
+
+### 4 KASUS RECOVERY PROTOKOL ZLCE:
+- KASUS A (Working tree bersih): Ulangi dari field "Langkah Berikutnya" pada WAL.
+- KASUS B (Diff uncommitted cocok dengan WAL): Pertahankan diff, verifikasi AC, commit wip().
+- KASUS C (Commit baru ada di Git log): Sinkronkan SESSION_STATE.md dengan commit Git.
+- KASUS D (Perubahan di luar WAL): Tahan perubahan, ubah status ke BLOCKED, minta konfirmasi user.
+
+Lokasi arsip file fisik: docs/archive/snapshot-[timestamp].txt`,
+  },
   docs_dan_arsip: {
     title: 'Folder docs/ (Tutorial/Panduan) & ARSIP/ (MD Lama)',
     path: 'docs/ & ARSIP/',
-    summary: 'Tidak perlu di-upload / dibaca rutin. docs/ berisi tutorial XAMPP & Operator; ARSIP/ berisi 15 file MD lama.',
+    summary: 'Tidak perlu di-upload / dibaca rutin. docs/ berisi tutorial XAMPP, Recovery, & Operator; ARSIP/ berisi 15 file MD lama.',
     content: `# PETA FOLDER docs/ (TUTORIAL & PANDUAN) DAN ARSIP/ (MD LAMA)
 
 1. FOLDER docs/ — KHUSUS TUTORIAL & PANDUAN (Hanya Diubah Jika Diminta di NEW_TASK.md):
+   - docs/PANDUAN_WIZARD_RECOVERY_ZLCE.md
+   - docs/PANDUAN_IMPORT_DATA_MOTOR_DARI_REACT.md
    - docs/PANDUAN_XAMPP_WIN11_SIMULASI.md
    - docs/OPERATOR_MANUAL.md
    - docs/ADMIN_GUIDE.md
@@ -405,7 +433,7 @@ function formatRp(val: number) {
 }
 
 export default function RyokourentAuditDashboard() {
-  const [activeTab, setActiveTab] = useState<'workflow' | 'portal_publik' | 'model_katalog' | 'armada_fisik' | 'transaksi_state' | 'lacak' | 'denda' | 'kode'>('portal_publik');
+  const [activeTab, setActiveTab] = useState<'recovery_wizard' | 'workflow' | 'portal_publik' | 'model_katalog' | 'armada_fisik' | 'transaksi_state' | 'lacak' | 'denda' | 'kode'>('recovery_wizard');
 
   // State untuk CPT Lacak Unit (`ryokou_lacak`)
   const [units, setUnits] = useState<TrackedUnit[]>(INITIAL_UNITS);
@@ -658,23 +686,29 @@ export default function RyokourentAuditDashboard() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Top Bar Contract: 3 Zones */}
-      <header className="flex items-center justify-between gap-8 px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-20">
-        <a href="#top" className="text-lg font-bold tracking-tight text-emerald-950 whitespace-nowrap shrink-0">
-          Ryokourent V2 Console
-        </a>
+      <header className="flex items-center justify-between gap-4 md:gap-8 px-4 md:px-6 py-3.5 bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <a href="#top" className="text-base md:text-lg font-bold tracking-tight text-emerald-950 whitespace-nowrap">
+            Ryokourent V2 Console
+          </a>
+          <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-md font-mono border border-emerald-300">
+            ZLCE Mode LITE
+          </span>
+        </div>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+        <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-600">
           <button
-            onClick={() => setActiveTab('workflow')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 ${
-              activeTab === 'workflow' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
+            onClick={() => setActiveTab('recovery_wizard')}
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'recovery_wizard' ? 'text-emerald-800 border-b-2 border-emerald-700 font-bold' : ''
             }`}
           >
-            Alur Kerja MD & Handover
+            <RotateCcw className="w-4 h-4 text-emerald-700" />
+            <span>Wizard Recovery ZLCE</span>
           </button>
           <button
             onClick={() => setActiveTab('portal_publik')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'portal_publik' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
@@ -682,8 +716,16 @@ export default function RyokourentAuditDashboard() {
             Portal Publik (007)
           </button>
           <button
+            onClick={() => setActiveTab('workflow')}
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 cursor-pointer ${
+              activeTab === 'workflow' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
+            }`}
+          >
+            Alur Kerja MD
+          </button>
+          <button
             onClick={() => setActiveTab('model_katalog')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'model_katalog' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
@@ -692,7 +734,7 @@ export default function RyokourentAuditDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('armada_fisik')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'armada_fisik' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
@@ -701,7 +743,7 @@ export default function RyokourentAuditDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('transaksi_state')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'transaksi_state' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
@@ -710,7 +752,7 @@ export default function RyokourentAuditDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('lacak')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'lacak' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
@@ -719,28 +761,39 @@ export default function RyokourentAuditDashboard() {
           </button>
           <button
             onClick={() => setActiveTab('denda')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 cursor-pointer ${
               activeTab === 'denda' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
-            Kalkulator Denda ShortRent
+            Denda ShortRent
           </button>
           <button
             onClick={() => setActiveTab('kode')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 ${
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 pb-0.5 cursor-pointer ${
               activeTab === 'kode' ? 'text-emerald-800 border-b-2 border-emerald-700 font-semibold' : ''
             }`}
           >
-            Kode Plugin WordPress
+            Kode Plugin
           </button>
         </nav>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setActiveTab('recovery_wizard')}
+            className={`px-3 py-1.5 md:px-3.5 md:py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap shadow-xs cursor-pointer ${
+              activeTab === 'recovery_wizard'
+                ? 'bg-emerald-700 text-white ring-2 ring-emerald-500'
+                : 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold'
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Wizard Recovery</span>
+          </button>
           <button
             onClick={() => copyText(STATIC_HANDOVER_PROMPT)}
-            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-800 rounded-lg hover:bg-emerald-900 transition-colors whitespace-nowrap shrink-0"
+            className="px-3 py-1.5 md:px-3.5 md:py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors whitespace-nowrap hidden sm:inline-flex cursor-pointer"
           >
-            {copied ? 'Prompt Tersalin!' : 'Salin Prompt Handover'}
+            {copied ? 'Prompt Tersalin!' : 'Salin Handover'}
           </button>
         </div>
       </header>
@@ -768,72 +821,81 @@ export default function RyokourentAuditDashboard() {
           </div>
 
           {/* Mobile Tab Bar */}
-          <div className="flex md:hidden items-center gap-1 p-1 bg-slate-100 rounded-lg mt-6 overflow-x-auto">
+          <div className="flex xl:hidden items-center gap-1.5 p-1.5 bg-slate-200/80 rounded-xl mt-6 overflow-x-auto shadow-2xs">
+            <button
+              onClick={() => setActiveTab('recovery_wizard')}
+              className={`px-3 py-2 text-xs font-bold rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'recovery_wizard' ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-800 bg-white hover:bg-slate-50'
+              }`}
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Wizard Recovery ZLCE</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('portal_publik')}
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
+                activeTab === 'portal_publik' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-600" />
+              Portal (007)
+            </button>
             <button
               onClick={() => setActiveTab('workflow')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 ${
-                activeTab === 'workflow' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'workflow' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
               FOLDER_KERJA
             </button>
             <button
-              onClick={() => setActiveTab('portal_publik')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeTab === 'portal_publik' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              <Globe className="w-3 h-3 text-emerald-700" />
-              Portal (007)
-            </button>
-            <button
               onClick={() => setActiveTab('model_katalog')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeTab === 'model_katalog' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
+                activeTab === 'model_katalog' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
-              <Bike className="w-3 h-3 text-emerald-700" />
+              <Bike className="w-3.5 h-3.5 text-emerald-600" />
               Model (003)
             </button>
             <button
               onClick={() => setActiveTab('armada_fisik')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeTab === 'armada_fisik' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
+                activeTab === 'armada_fisik' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
-              <KeyRound className="w-3 h-3 text-emerald-700" />
+              <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
               Armada (004)
             </button>
             <button
               onClick={() => setActiveTab('transaksi_state')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeTab === 'transaksi_state' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
+                activeTab === 'transaksi_state' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
-              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               Transaksi (005)
             </button>
             <button
               onClick={() => setActiveTab('lacak')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                activeTab === 'lacak' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
+                activeTab === 'lacak' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
-              <MapPin className="w-3 h-3 text-emerald-700" />
+              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
               Lacak (006)
             </button>
             <button
               onClick={() => setActiveTab('denda')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 ${
-                activeTab === 'denda' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'denda' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
               Kalkulator Denda
             </button>
             <button
               onClick={() => setActiveTab('kode')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 ${
-                activeTab === 'kode' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'kode' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-white hover:bg-slate-50'
               }`}
             >
               Kode Plugin
@@ -870,9 +932,42 @@ export default function RyokourentAuditDashboard() {
           </div>
         </section>
 
+        {/* TAB 0: WIZARD RECOVERY ZLCE & WORKBENCH */}
+        {activeTab === 'recovery_wizard' && (
+          <section className="space-y-6">
+            <ZlceStudioWorkbench onNavigateToTab={(tab) => setActiveTab(tab as any)} />
+          </section>
+        )}
+
         {/* TAB 1: ALUR KERJA MD & HANDOVER PROMPT */}
         {activeTab === 'workflow' && (
           <div className="space-y-6">
+            {/* Banner Khusus Pemulihan Sesi Android */}
+            <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white p-5 rounded-2xl border border-emerald-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-400 text-slate-950 rounded-md">
+                    Recovery Terpandu Android
+                  </span>
+                  <span className="text-xs text-emerald-400 font-mono">Anti-Sesi Hilang</span>
+                </div>
+                <h3 className="text-sm md:text-base font-bold text-white flex items-center gap-2">
+                  <span>Sesi AI Terputus atau Tab Android Me-reload? Buka Wizard Recovery</span>
+                </h3>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Jalankan snapshot repositori otomatis, analisis Kasus A–D terhadap WAL, dan salin Bundel Handover All-in-One dalam 1 kali sentuh.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab('recovery_wizard')}
+                className="px-4 py-2.5 text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-xs cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Buka Wizard Recovery</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
             {/* Petunjuk 3 Folder MD */}
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">

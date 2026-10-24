@@ -99,14 +99,16 @@ function ryokourent_register_rest_routes() {
 		)
 	);
 
-	// 6. POST /wp-json/ryokourent/v1/seed-motors
+	// 6. POST /wp-json/ryokourent/v1/seed-motors (Terkunci khusus administrator - K-03)
 	register_rest_route(
 		$namespace,
 		'/seed-motors',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'ryokourent_rest_seed_motors',
-			'permission_callback' => '__return_true',
+			'permission_callback' => function() {
+				return current_user_can( 'manage_options' );
+			},
 		)
 	);
 }
