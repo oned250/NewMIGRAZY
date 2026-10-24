@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   RotateCcw,
   CheckCircle2,
@@ -60,13 +60,7 @@ export default function ZlceStudioWorkbench({ onNavigateToTab }: ZlceStudioProps
   // State untuk Editor & Markdown View
   const [editorMode, setEditorMode] = useState<'visual' | 'raw'>('visual');
 
-  // Ambil snapshot awal saat mount
-  useEffect(() => {
-    fetchSnapshot(false);
-    runValidator();
-  }, []);
-
-  const fetchSnapshot = async (withDiff: boolean = true) => {
+  const fetchSnapshot = useCallback(async (withDiff: boolean = true) => {
     setSnapshotLoading(true);
     try {
       const res = await fetch(`/api/zlce/snapshot?diff=${withDiff}`);
@@ -85,9 +79,9 @@ export default function ZlceStudioWorkbench({ onNavigateToTab }: ZlceStudioProps
     } finally {
       setSnapshotLoading(false);
     }
-  };
+  }, []);
 
-  const runValidator = async (strict: boolean = true) => {
+  const runValidator = useCallback(async (strict: boolean = true) => {
     setCheckLoading(true);
     try {
       const res = await fetch(`/api/zlce/check?strict=${strict}`);
@@ -100,7 +94,43 @@ export default function ZlceStudioWorkbench({ onNavigateToTab }: ZlceStudioProps
     } finally {
       setCheckLoading(false);
     }
-  };
+  }, []);
+
+  // Ambil snapshot awal saat mount
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const [resSnap, resCheck] = await Promise.allSettled([
+          fetch('/api/zlce/snapshot?diff=false').then((r) => r.json()),
+          fetch('/api/zlce/check?strict=true').then((r) => r.json()),
+        ]);
+
+        if (ignore) return;
+
+        if (resSnap.status === 'fulfilled' && resSnap.value?.success) {
+          setSnapshotOutput(resSnap.value.snapshot);
+          if (resSnap.value.detectedCase) {
+            setDetectedCase(resSnap.value.detectedCase);
+            setSelectedCase(resSnap.value.detectedCase);
+          }
+        }
+
+        if (resCheck.status === 'fulfilled' && resCheck.value) {
+          setCheckOutput(resCheck.value.output || resCheck.value.stderr || 'Tidak ada output');
+          setIsCheckOk(resCheck.value.isOk);
+        }
+      } catch (err: any) {
+        if (!ignore) {
+          setSnapshotOutput(`[ERROR] Gagal memuat data awal: ${err.message}`);
+        }
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const copyToClipboard = (text: string, setter: (val: boolean) => void) => {
     navigator.clipboard.writeText(text);
