@@ -14,6 +14,8 @@ Sistem manajemen rental sepeda motor WordPress Native (`ryokourent-core` + `gene
    - `FOLDER_KERJA/AI_WORKFLOW.md` — Tata kelola operasional agen, aturan R1–R12, triase revisi R7, dan proteksi kode `D-31`.
 
 2. **`docs/` — KHUSUS TUTORIAL & PANDUAN (Tidak Perlu Di-upload / Dibaca Rutin)**
+   - `docs/PANDUAN_WIZARD_RECOVERY_ZLCE.md` — Tutorial pemakaian Fitur Wizard Recovery ZLCE untuk memulihkan sesi AI terputus di HP/Android & desktop.
+   - `docs/PANDUAN_IMPORT_DATA_MOTOR_DARI_REACT.md` — Panduan impor 6 model motor contoh ke WordPress (1-klik / Smart Fallback).
    - `docs/PANDUAN_XAMPP_WIN11_SIMULASI.md` — Tutorial instalasi XAMPP Windows 11 & simulasi pelatihan operator.
    - `docs/OPERATOR_MANUAL.md` — Panduan operasional harian staf operator.
    - `docs/ADMIN_GUIDE.md` — Panduan administrator/pemilik.

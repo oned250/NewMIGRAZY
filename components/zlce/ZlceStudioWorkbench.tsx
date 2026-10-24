@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   RotateCcw,
   CheckCircle2,
+  CheckCircle,
   AlertTriangle,
   FileText,
   Terminal,
@@ -19,6 +20,8 @@ import {
   HelpCircle,
   Clock,
   ArrowRight,
+  ArrowLeft,
+  ChevronRight,
   Sliders,
   ExternalLink,
   Code,
@@ -26,6 +29,8 @@ import {
   AlertOctagon,
   FileCode,
   Sparkles,
+  Archive,
+  Play,
 } from 'lucide-react';
 
 interface ZlceStudioProps {
@@ -43,6 +48,18 @@ export default function ZlceStudioWorkbench({ onNavigateToTab }: ZlceStudioProps
   const [copiedSnapshot, setCopiedSnapshot] = useState(false);
   const [copiedHandover, setCopiedHandover] = useState(false);
   const [copiedCheckpoint, setCopiedCheckpoint] = useState(false);
+
+  // State untuk Wizard Pembuat Snapshot Pemulihan Tab Recovery
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
+  const [wizardReason, setWizardReason] = useState<string>('Sesi AI Terputus Tiba-tiba (Recovery)');
+  const [wizardWithDiff, setWizardWithDiff] = useState<boolean>(true);
+  const [wizardSaveArchive, setWizardSaveArchive] = useState<boolean>(true);
+  const [wizardAppendLog, setWizardAppendLog] = useState<boolean>(true);
+  const [wizardCustomNotes, setWizardCustomNotes] = useState<string>('');
+  const [wizardCreating, setWizardCreating] = useState<boolean>(false);
+  const [wizardHandoverBundle, setWizardHandoverBundle] = useState<string>('');
+  const [wizardSavedPath, setWizardSavedPath] = useState<string | null>(null);
+  const [copiedHandoverBundle, setCopiedHandoverBundle] = useState<boolean>(false);
 
   // State untuk Validator CLI
   const [checkLoading, setCheckLoading] = useState(false);
@@ -95,6 +112,51 @@ export default function ZlceStudioWorkbench({ onNavigateToTab }: ZlceStudioProps
       setCheckLoading(false);
     }
   }, []);
+
+  const executeCreateSnapshot = async () => {
+    setWizardCreating(true);
+    try {
+      const res = await fetch('/api/zlce/snapshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          withDiff: wizardWithDiff,
+          targetDir: '.',
+          reason: wizardCustomNotes ? `${wizardReason} — ${wizardCustomNotes}` : wizardReason,
+          saveToArchive: wizardSaveArchive,
+          appendAuditLog: wizardAppendLog,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSnapshotOutput(data.snapshot);
+        if (data.detectedCase) {
+          setDetectedCase(data.detectedCase);
+          setSelectedCase(data.detectedCase);
+        }
+        setWizardHandoverBundle(data.handoverBundle || '');
+        setWizardSavedPath(data.savedPath || null);
+        setWizardStep(3); // Langsung pindah ke hasil analisis kasus
+      } else {
+        setSnapshotOutput(`[ERROR] Gagal membuat snapshot: ${data.error}`);
+      }
+    } catch (err: any) {
+      setSnapshotOutput(`[ERROR] Gagal menghubungi API: ${err.message}`);
+    } finally {
+      setWizardCreating(false);
+    }
+  };
+
+  const downloadSnapshotFile = () => {
+    if (!snapshotOutput) return;
+    const element = document.createElement('a');
+    const file = new Blob([snapshotOutput], { type: 'text/plain;charset=utf-8' });
+    element.href = URL.createObjectURL(file);
+    element.download = `zlce-recovery-snapshot-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
 
   // Ambil snapshot awal saat mount
   useEffect(() => {
@@ -316,6 +378,445 @@ export default function ZlceStudioWorkbench({ onNavigateToTab }: ZlceStudioProps
       {/* SUB-TAB 1: WIZARD RECOVERY SESI TERPUTUS (KASUS A-D) */}
       {activeSubTab === 'recovery' && (
         <div className="space-y-6">
+          {/* WIZARD INTERAKTIF: PEMBUAT SNAPSHOT PEMULIHAN ZLCE */}
+          <div className="bg-white border-2 border-emerald-600/30 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1 border border-emerald-300">
+                    <Sparkles className="w-3 h-3 text-emerald-700" />
+                    Wizard Terpandu
+                  </span>
+                  <span className="text-xs text-slate-400">•</span>
+                  <span className="text-xs font-mono text-slate-500">scripts/zlce/zlce-snapshot.sh</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <span>Wizard Pembuat Snapshot Pemulihan ZLCE</span>
+                </h3>
+                <p className="text-xs text-slate-600 max-w-2xl">
+                  Hasilkan snapshot diagnostik Git, analisis otomatis Kasus A–D terhadap Write-Ahead Log (WAL), simpan arsip, dan siapkan bundel Handover All-in-One dalam 4 langkah terpandu.
+                </p>
+              </div>
+
+              {/* Status Step Badge */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                {[
+                  { step: 1, label: '1. Opsi' },
+                  { step: 2, label: '2. Eksekusi' },
+                  { step: 3, label: '3. Diagnostik' },
+                  { step: 4, label: '4. Ekspor' },
+                ].map((item) => (
+                  <button
+                    key={item.step}
+                    onClick={() => {
+                      if (item.step === 1 || item.step === 2 || (item.step === 3 && snapshotOutput) || (item.step === 4 && snapshotOutput)) {
+                        setWizardStep(item.step as any);
+                      }
+                    }}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                      wizardStep === item.step
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : item.step < wizardStep
+                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* STEP 1: KONFIGURASI SNAPSHOT */}
+            {wizardStep === 1 && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Pilihan Skenario / Alasan */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold text-slate-900 block">
+                      1. Pilih Skenario Pembuatan Snapshot:
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        {
+                          id: 'Sesi AI Terputus Tiba-tiba (Recovery)',
+                          title: 'Sesi AI Terputus Tiba-tiba (Recovery)',
+                          desc: 'Sesi timeout, tab tertutup, atau kuota habis di tengah eksekusi task aktif.',
+                          icon: AlertTriangle,
+                          badge: 'Rekomendasi Utama',
+                        },
+                        {
+                          id: 'Pindah ke Model / Platform AI Baru (Handover)',
+                          title: 'Pindah Model / Sesi AI Baru (Handover)',
+                          desc: 'Beralih ke sesi chat baru (ChatGPT, Claude Web, Cursor, atau Windsurf).',
+                          icon: ArrowRight,
+                          badge: 'Serah Terima',
+                        },
+                        {
+                          id: 'Checkpoint Titik-Simpan Rutin (WIP Safe)',
+                          title: 'Checkpoint Titik-Simpan Rutin (WIP Safe)',
+                          desc: 'Menyimpan snapshot sebelum langkah refactoring atau fitur besar.',
+                          icon: GitCommit,
+                          badge: 'Pencegahan',
+                        },
+                        {
+                          id: 'Audit Integritas Repositori Mandiri',
+                          title: 'Audit Integritas Repositori Mandiri',
+                          desc: 'Memeriksa kebersihan working tree dan keselarasan dengan state kontrol.',
+                          icon: Shield,
+                          badge: 'Inspeksi',
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => setWizardReason(item.id)}
+                          className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                            wizardReason === item.id
+                              ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500'
+                              : 'border-slate-200 hover:border-slate-300 bg-white'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-lg mt-0.5 ${wizardReason === item.id ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                            <item.icon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-900">{item.title}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600">
+                                {item.badge}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 mt-0.5">{item.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pengaturan Tambahan */}
+                  <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <label className="text-xs font-bold text-slate-900 block">
+                      2. Parameter & Opsi Diagnostik:
+                    </label>
+
+                    <div className="space-y-3 text-xs">
+                      <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={wizardWithDiff}
+                          onChange={(e) => setWizardWithDiff(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="font-semibold text-slate-900">Sertakan Git Diff Penuh (--diff)</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Menyertakan baris perbedaan kode uncommitted lengkap (kritis untuk evaluasi Kasus B & Kasus D).
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={wizardSaveArchive}
+                          onChange={(e) => setWizardSaveArchive(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="font-semibold text-slate-900">Simpan ke Berkas Arsip (docs/archive/)</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Menyimpan salinan fisik snapshot ke folder arsip repositori dengan timestamp otomatis.
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={wizardAppendLog}
+                          onChange={(e) => setWizardAppendLog(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <div className="font-semibold text-slate-900">Catat ke Log Audit SESSION_STATE.md</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Menambahkan entri peristiwa resmi di bagian ## 7. LOG AUDIT untuk keterlacakan ZLCE.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1.5 pt-2">
+                      <label className="text-xs font-semibold text-slate-700 block">
+                        Catatan Kustom (Opsional):
+                      </label>
+                      <input
+                        type="text"
+                        value={wizardCustomNotes}
+                        onChange={(e) => setWizardCustomNotes(e.target.value)}
+                        placeholder="Misal: Perbaikan kalkulator denda shortrent 60 menit"
+                        className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                  <button
+                    onClick={() => setWizardStep(2)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-xs cursor-pointer"
+                  >
+                    <span>Lanjut ke Konfirmasi & Eksekusi</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: KONFIRMASI & EKSEKUSI */}
+            {wizardStep === 2 && (
+              <div className="space-y-5">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    <span>Ringkasan Konfigurasi Snapshot</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-white p-3 rounded-lg border border-slate-200">
+                      <span className="text-[10px] text-slate-400 block font-medium">Skenario Alasan</span>
+                      <span className="font-semibold text-slate-900 mt-0.5 block">{wizardReason}</span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200">
+                      <span className="text-[10px] text-slate-400 block font-medium">Git Diff Flag</span>
+                      <span className="font-semibold text-slate-900 mt-0.5 block font-mono">
+                        {wizardWithDiff ? '--diff (Aktif)' : 'Ringkas (Tanpa Diff)'}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-slate-200">
+                      <span className="text-[10px] text-slate-400 block font-medium">Penyimpanan Arsip</span>
+                      <span className="font-semibold text-slate-900 mt-0.5 block">
+                        {wizardSaveArchive ? 'Simpan ke docs/archive/' : 'Hanya Memory'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs text-emerald-950 flex items-start gap-2.5">
+                    <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      Sistem akan memanggil skrip kanonikal <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">bash scripts/zlce/zlce-snapshot.sh</code>, menganalisis Git Status, memeriksa Write-Ahead Log (WAL), dan mengklasifikasikan situasi pemulihan ke dalam <strong>Kasus A, B, C, atau D</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                  <button
+                    onClick={() => setWizardStep(1)}
+                    disabled={wizardCreating}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Kembali ke Opsi</span>
+                  </button>
+
+                  <button
+                    onClick={executeCreateSnapshot}
+                    disabled={wizardCreating}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
+                  >
+                    {wizardCreating ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Memproses Snapshot Repositori...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 fill-white" />
+                        <span>Eksekusi & Buat Snapshot Sekarang</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: HASIL DIAGNOSTIK & REKOMENDASI KASUS */}
+            {wizardStep === 3 && (
+              <div className="space-y-5">
+                {/* Alert Keberhasilan */}
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs font-bold text-emerald-950">
+                        Snapshot Berhasil Dibuat dan Dianalisis!
+                      </h4>
+                      <p className="text-xs text-emerald-800">
+                        Skrip <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">zlce-snapshot.sh</code> telah sukses memindai repositori.
+                        {wizardSavedPath && (
+                          <span className="block mt-1 font-mono text-[11px] text-emerald-900">
+                            📁 Salinan arsip tersimpan di: <strong>{wizardSavedPath}</strong>
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600 text-white font-mono shrink-0">
+                    KASUS {detectedCase}
+                  </span>
+                </div>
+
+                {/* Kartu Diagnostik Kasus Terpilih */}
+                <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900">
+                        Hasil Klasifikasi Protokol ZLCE:
+                      </span>
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-slate-900 text-white font-mono">
+                        Kasus {detectedCase}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      Rekomendasi Tindakan Sesi AI Baru
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <span className="font-bold text-slate-900 block">Kondisi yang Ditemukan:</span>
+                      <p className="text-slate-700 leading-relaxed text-[11px]">
+                        {detectedCase === 'A' && 'Working tree bersih tanpa file uncommitted. Langkah task yang sedang berjalan belum sempat ditulis atau di-commit.'}
+                        {detectedCase === 'B' && 'Ditemukan modifikasi uncommitted yang cocok dengan daftar berkas pada Write-Ahead Log (WAL).'}
+                        {detectedCase === 'C' && 'Ada commit Git baru yang belum sempat didaftarkan pada tabel SESSION_STATE.md.'}
+                        {detectedCase === 'D' && 'Ditemukan perubahan pada berkas di luar daftar WAL. Resiko modifikasi tak terduga!'}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2">
+                      <span className="font-bold text-emerald-950 block">Langkah Aksi yang Wajib Dijalankan:</span>
+                      <p className="text-slate-800 leading-relaxed text-[11px]">
+                        {detectedCase === 'A' && 'Buka sesi AI baru, unggah FOLDER_KERJA/ dan snapshot ini, instruksikan AI melanjutkan dari Langkah Berikutnya pada WAL.'}
+                        {detectedCase === 'B' && 'Pertahankan diff, periksa pemenuhan Acceptance Criteria, lalu buat commit wip() sebelum menandai DONE.'}
+                        {detectedCase === 'C' && 'Perbarui matriks task di SESSION_STATE.md agar selaras dengan commit Git terbaru, verifikasi ulang.'}
+                        {detectedCase === 'D' && 'BERHENTI! Jangan lakukan reset paksa. Set status task ke BLOCKED dan tanyakan ke pengguna terlebih dahulu.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                  <button
+                    onClick={() => setWizardStep(1)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Mulai Ulang Wizard</span>
+                  </button>
+
+                  <button
+                    onClick={() => setWizardStep(4)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-xs cursor-pointer"
+                  >
+                    <span>Lanjut ke Bundel Handover & Ekspor</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: BUNDEL HANDOVER & EKSPOR */}
+            {wizardStep === 4 && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Kartu 1: Bundel All-in-One */}
+                  <div className="bg-emerald-50/80 border-2 border-emerald-500/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+                        <Sparkles className="w-4 h-4 text-emerald-700" />
+                        <span>Bundel Handover All-in-One</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-900 leading-relaxed">
+                        Menggabungkan prompt HANDOVER.md paten, Snapshot repositori terbaru, dan status SESSION_STATE.md dalam 1 teks siap tempel ke AI baru.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => copyToClipboard(wizardHandoverBundle || snapshotOutput, setCopiedHandoverBundle)}
+                      className="w-full py-2 px-3 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                    >
+                      {copiedHandoverBundle ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiedHandoverBundle ? 'Bundel Tersalin!' : 'Salin Bundel All-in-One'}</span>
+                    </button>
+                  </div>
+
+                  {/* Kartu 2: Unduh Berkas Snapshot */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                        <Download className="w-4 h-4 text-slate-700" />
+                        <span>Unduh Berkas Snapshot (.txt)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Unduh hasil output teks mentah snapshot untuk disimpan di komputer lokal atau dilampirkan sebagai berkas di platform AI.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={downloadSnapshotFile}
+                      className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Unduh File .txt</span>
+                    </button>
+                  </div>
+
+                  {/* Kartu 3: Salin Snapshot Mentah */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                        <Terminal className="w-4 h-4 text-slate-700" />
+                        <span>Salin Snapshot Mentah</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        Hanya menyalin teks keluaran dari skrip zlce-snapshot.sh tanpa pembungkus template instruksi handover.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => copyToClipboard(snapshotOutput, setCopiedSnapshot)}
+                      className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center gap-1.5 transition-colors border border-slate-300 cursor-pointer"
+                    >
+                      {copiedSnapshot ? <Check className="w-4 h-4 text-emerald-700" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiedSnapshot ? 'Snapshot Tersalin!' : 'Salin Teks Snapshot'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    onClick={() => setWizardStep(3)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Kembali ke Diagnostik</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setWizardStep(1);
+                      setWizardCustomNotes('');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Buat Snapshot Baru</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Panduan 4 Kasus Pemulihan ZLCE */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
