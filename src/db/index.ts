@@ -711,7 +711,20 @@ export const createMockPool = () => ({
 
 // Function to create or retrieve the connection pool
 export const createPool = () => {
-  if (!process.env.SQL_HOST && !process.env.DATABASE_URL) {
+  const hasDbConfig = Boolean(process.env.SQL_HOST || process.env.DATABASE_URL);
+  // Enforce DB credentials strictly in production when STRICT_PROD_DB=true.
+  // During build time or preview, allow fallback mock pool so builds and preview workbench remain fully functional.
+  const isStrictProduction =
+    process.env.NODE_ENV === 'production' &&
+    process.env.STRICT_PROD_DB === 'true' &&
+    process.env.NEXT_PHASE !== 'phase-production-build';
+
+  if (!hasDbConfig) {
+    if (isStrictProduction) {
+      throw new Error(
+        '[Database Error] Database credentials not configured in production environment (missing SQL_HOST or DATABASE_URL). Refusing silent fallback to in-memory store.'
+      );
+    }
     if (!global._postgresPool) {
       console.log('[AI Studio] PostgreSQL credentials not found in env — using in-memory mock store');
       global._postgresPool = createMockPool();
@@ -721,19 +734,34 @@ export const createPool = () => {
 
   if (!global._postgresPool) {
     try {
-      global._postgresPool = new Pool({
-        host: process.env.SQL_HOST,
-        user: process.env.SQL_USER,
-        password: process.env.SQL_PASSWORD,
-        database: process.env.SQL_DB_NAME,
-        max: 10,
-        connectionTimeoutMillis: 5000,
-      });
+      const poolConfig: any = process.env.DATABASE_URL
+        ? {
+            connectionString: process.env.DATABASE_URL,
+            max: 10,
+            connectionTimeoutMillis: 5000,
+          }
+        : {
+            host: process.env.SQL_HOST,
+            user: process.env.SQL_USER,
+            password: process.env.SQL_PASSWORD,
+            database: process.env.SQL_DB_NAME,
+            max: 10,
+            connectionTimeoutMillis: 5000,
+          };
+
+      if (process.env.NODE_ENV === 'production' && !process.env.DISABLE_DB_SSL) {
+        poolConfig.ssl = { rejectUnauthorized: false };
+      }
+
+      global._postgresPool = new Pool(poolConfig);
 
       global._postgresPool.on('error', (err: any) => {
         console.error('Unexpected error on idle SQL pool client:', err);
       });
     } catch (e) {
+      if (isStrictProduction) {
+        throw new Error(`[Database Error] Failed to initialize PostgreSQL Pool: ${(e as any)?.message}`);
+      }
       console.warn('[AI Studio] Failed to initialize Pool — falling back to in-memory mock', e);
       global._postgresPool = createMockPool();
     }
